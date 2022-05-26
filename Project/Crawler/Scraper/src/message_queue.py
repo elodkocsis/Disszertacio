@@ -5,7 +5,7 @@ from typing import Dict, Optional, List, Callable
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
-from src.utils import eprint
+from src.utils import eprint, is_onion_link
 
 
 # TODO: I written this class without testing it. Check out if the message sending/acknowledging logic is correct.
@@ -80,6 +80,14 @@ class MessageQueue:
             # TODO: check if this needs an UTF-8 decoding
             # get the url
             url = body.decode()
+
+            # check if url is a valid onion link
+            if not is_onion_link(link=url):
+                print(f' [x] URL "{url}" is not a valid onion link!')
+
+                # acknowledge that it has been processed even if it's not a valid link we want to deal with
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
 
             # TODO: maybe switch out the prints for logging?
             print(f' [x] URL to work with: "{url}"...')
