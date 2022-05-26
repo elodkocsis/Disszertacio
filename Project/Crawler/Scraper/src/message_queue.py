@@ -61,6 +61,10 @@ class MessageQueue:
 
         """
 
+        # declare the worker queue
+        # making it durable for persistence purposes
+        self.channel.queue_declare(queue=MessageQueue.__connection_keys[2], durable=True)
+
         # setting basic_qos for fair dispatching
         self.channel.basic_qos(prefetch_count=1)
 
