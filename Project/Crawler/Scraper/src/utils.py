@@ -1,6 +1,6 @@
 import re
 from sys import stderr
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from configparser import ConfigParser
 
 
@@ -47,3 +47,24 @@ def is_onion_link(link: str) -> bool:
         return False
 
     return True
+
+
+def dict_has_necessary_keys(dict_to_check: Dict, needed_keys: List) -> bool:
+    """
+    Function which checks if a dictionary has the necessary keys or not.
+
+    :param dict_to_check: Dictionary to be checked.
+    :param needed_keys: List of keys that need to be present in the dictionary.
+    :return: True if the keys are present in the dictionary, otherwise False.
+    """
+
+    # set operation to get missing values
+    # this will check if all the necessary keys are present in a dictionary
+    diff = set(needed_keys) - set(dict_to_check.keys())
+
+    if len(diff) > 0:
+        eprint("Parameters missing from dict: {}".format(",".join(diff)))
+        return False
+
+    return True
+

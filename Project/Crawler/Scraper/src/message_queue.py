@@ -5,7 +5,7 @@ from typing import Dict, Optional, List, Callable
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
-from src.utils import eprint, is_onion_link
+from src.utils import eprint, is_onion_link, dict_has_necessary_keys
 
 
 # TODO: I written this class without testing it. Check out if the message sending/acknowledging logic is correct.
@@ -166,17 +166,13 @@ class MessageQueue:
         Function which creates a BlockingConnection object for MQ based on the parameters received.
 
         :param param_dict: Dict of parameters needed to connect to the message queue.
+        :param needed_keys: List of keys that need to be present in the dictionary.
         :return: BlockingConnection object used to communicate with the MQ.
 
         """
 
-        # set operation to get missing values
-        # this will check if all the necessary keys are present, thus we won't have to check again when we define
-        # the worker and scheduler/processor queues
-        diff = set(needed_keys) - set(param_dict.keys())
-
-        if len(diff) > 0:
-            eprint("The following parameters are missing: {}".format(",".join(diff)))
+        # check if the dictionary has all the necessary keys to get a connection
+        if not dict_has_necessary_keys(dict_to_check=param_dict, needed_keys=needed_keys):
             return None
 
         return MessageQueue._get_connection(host=param_dict[needed_keys[0]],
