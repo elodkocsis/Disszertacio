@@ -29,4 +29,4 @@ class Page(Base):
         :return: List of strings of necessary keys.
 
         """
-        return ["url", "page_content", "meta_tags"]
+        return ["url", "page_content", "meta_tags", "links"]

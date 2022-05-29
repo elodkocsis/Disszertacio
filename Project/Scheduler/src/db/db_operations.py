@@ -43,48 +43,77 @@ def get_page_urls_to_scrape(session: Session, access_day_difference: int) -> Opt
     return [row[0] for row in pages] if len(pages) > 0 else []
 
 
-def update_page(session: Session, new_page_data: Dict) -> bool:
+def update_page(session: Session, existing_page: Page, new_page_data: Dict) -> Optional[Page]:
     """
     Function which updates a record in the database based on the new data it receives.
 
     :param session: Session object for the database.
+    :param existing_page: The existing Page data we want to update.
     :param new_page_data: Dictionary containing the new data for a database record.
-    :return: True if the update operation was successful, otherwise False.
+    :return: The updated Page object if the update was successful, otherwise None.
 
     """
 
     keys = Page.get_list_of_required_columns_for_update()
 
-    # double check, since we are interested in the same data here too as we were when receiving the response from the MQ
-    if not dict_has_necessary_keys(dict_to_check=new_page_data,
-                                   needed_keys=keys):
-        return False
+    # update the relevant fields
+    existing_page.page_content = new_page_data[keys[1]]      # key for content
+    existing_page.meta_tags = new_page_data[keys[2]]    # key for meta tags
+    existing_page.date_accessed = datetime.now()        # update with the current time
+    existing_page.new_url = False                       # specify that this is no more a new url
 
-    url = new_page_data[keys[0]]
+    # try to save and commit
+    try:
+        session.add(existing_page)
+        session.commit()
+    except Exception as e:
+        eprint(f"Exception while trying to update record in the database {e}")
+        return None
 
-    # get the existing record
-    if (existing_data := session.query(Page)
-            .filter(Page.url == url)
-            .first()) is not None:
+    return existing_page
 
-        # update the relevant fields
-        existing_data.page_content = new_page_data[keys[1]]      # key for content
-        existing_data.meta_tags = new_page_data[keys[2]]    # key for meta tags
-        existing_data.date_accessed = datetime.now()        # update with the current time
-        existing_data.new_url = False                       # specify that this is no more a new url
 
-        # try to save and commit
-        try:
-            session.add(existing_data)
-            session.commit()
-        except Exception as e:
-            eprint(f"Exception while trying to update record in the database {e}")
-            return False
+def get_existing_page(session: Session, url: str) -> Optional[Page]:
+    """
+    Function which returns a Page object from the database if it exists.
 
-        return True
+    :param session: Session object for the database.
+    :param url: The URL of the page.
+    :return: Page object if it is present in the database.
 
-    # I know, I know, but it's much more readable with the else present
-    else:
-        # if this function is used as it is intended, this should never happen
-        eprint(f'URL "{url}" present in the database!')
-        return False
+    """
+
+    return session.query(Page).filter(Page.url == url).first()
+
+
+def add_page(session: Session, new_page_data: Dict, is_new_url: bool) -> Optional[Page]:
+    """
+    Function which inserts a record in the database based on the new data it receives.
+
+    :param session: Session object for the database.
+    :param new_page_data: Dictionary containing the new data for a database record.
+    :param is_new_url: Flag signifying whether the url is a new one or it has already been scraped, but the row got
+                        deleted while the URL was being scraped.
+    :return: The updated Page object if the update was successful, otherwise None.
+
+    """
+
+    keys = Page.get_list_of_required_columns_for_update()
+
+    # create new page object
+    new_page = Page(url=new_page_data[keys[0]],
+                    date_accessed=None if is_new_url else datetime.now(),  # new URLs were not accessed
+                    page_content=new_page_data[keys[1]],
+                    meta_tags=new_page_data[keys[2]],
+                    new_url=is_new_url,
+                    date_added=datetime.now())
+
+    # try to save and commit
+    try:
+        session.add(new_page)
+        session.commit()
+    except Exception as e:
+        eprint(f"Exception while trying to insert record into the database {e}")
+        return None
+
+    return new_page
