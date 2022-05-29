@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy import Column, String, DateTime, Boolean, Text, JSON
 
 from src.db.database import Base
@@ -18,3 +20,13 @@ class Page(Base):
     def __repr__(self):
         return f"<Page: url: {self.url}; date_added: {self.date_added}; " \
                f"is_new: {self.new_url}; date_accessed: {self.date_added}>"
+
+    @staticmethod
+    def get_list_of_required_columns_for_update() -> List[str]:
+        """
+        Function which returns a list of keys which should be present in the dictionary received from the scrapers.
+
+        :return: List of strings of necessary keys.
+
+        """
+        return ["url", "page_content", "meta_tags"]

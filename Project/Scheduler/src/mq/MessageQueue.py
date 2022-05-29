@@ -5,7 +5,7 @@ from typing import Dict, Optional, List, Callable
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
-from src.utils import eprint
+from src.utils import eprint, dict_has_necessary_keys
 
 
 class MessageQueue:
@@ -91,8 +91,7 @@ class MessageQueue:
                 print(f' [x] Data received. Processing data...')
 
                 # run the job with the received data
-                if(page := self.function_to_execute(data)) is not None:
-
+                if (page := self.function_to_execute(data)) is not None:
                     print(f' [x] Data processed. Page "{page}" added to database.')
 
                     # acknowledge that the task is done if the function doesn't return None.
@@ -161,13 +160,7 @@ class MessageQueue:
 
         """
 
-        # set operation to get missing values
-        # this will check if all the necessary keys are present, thus we won't have to check again when we define
-        # the worker and scheduler/processor queues
-        diff = set(needed_keys) - set(param_dict.keys())
-
-        if len(diff) > 0:
-            eprint("The following parameters are missing: {}".format(",".join(diff)))
+        if not dict_has_necessary_keys(dict_to_check=param_dict, needed_keys=needed_keys):
             return None
 
         return MessageQueue._get_connection(host=param_dict[needed_keys[0]],
