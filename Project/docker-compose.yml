@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: unless-stopped
+    container_name: 'database'
+    user: postgres
+    environment:
+      - POSTGRES_DB=DarkWebScraper
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes: 
+      - postgres_data_volume:/var/lib/postgresql/data
+      - ./DB/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.10-management
+    restart: unless-stopped
+    container_name: 'rabbitmq'
+    ports:
+        - '5672:5672'
+        - '15672:15672'
+    volumes:
+        - ./MQ/data/:/var/lib/rabbitmq/
+        - ./MQ/log/:/var/log/rabbitmq
+    healthcheck:
+      test: ["rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+volumes:
+  postgres_data_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: D:\PythonProjects\Disszertacio\Project\DB\data  # absolute path to the directory we want to mount
