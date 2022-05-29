@@ -46,13 +46,13 @@ class MessageQueue:
         # save the function for later
         self.function_to_execute = function_to_execute
 
-    def __del__(self):
+    def close_connection(self):
         """
-        Destructor method.
+        Method which closes the connection to the MQ.
+        DO NOT USE ANY METHOD AFTER CALLING THIS METHOD!!!
 
         """
 
-        # I'm not really sure if this will ever be called but defined nonetheless.
         self.connection.close()
 
     def start_working(self):
@@ -68,10 +68,13 @@ class MessageQueue:
         # setting basic_qos for fair dispatching
         self.channel.basic_qos(prefetch_count=1)
 
-        # start consuming when data is available on the queue
+        # define where and how to consume
         # at this point, the connection keys have been checked
         # Change index for connection keys list if the ordering changes!
         self.channel.basic_consume(queue=MessageQueue.__connection_keys[2], on_message_callback=self._on_message())
+
+        # start consuming when data is available on the queue
+        self.channel.start_consuming()
 
     def _on_message(self):
         """
