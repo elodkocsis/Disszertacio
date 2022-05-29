@@ -4,11 +4,12 @@ from typing import Optional, Dict
 from configparser import ConfigParser
 
 
-def read_config_file(config_file: str) -> Optional[Dict]:
+def read_config_file(config_file: str, section: str) -> Optional[Dict]:
     """
     Function which reads a configuration file and returns the configuration parameters as a Dict.
 
     :param config_file: Path to the configuration file.
+    :param section: The section to read the parameters within the config file.
     :return: Dict if the file and specified section exists, otherwise None.
 
     """
@@ -16,12 +17,10 @@ def read_config_file(config_file: str) -> Optional[Dict]:
 
     config_parser.read(config_file)
 
-    # config_parser.remove_section('root')
-
     try:
-        param_dict = dict(config_parser.items("DEFAULT"))
+        param_dict = dict(config_parser.items(section))
     except Exception as e:
-        eprint(e)
+        eprint(f"Error while reading config file: {e}")
         param_dict = None
 
     return param_dict

@@ -129,7 +129,7 @@ class MessageQueue:
         try:
             self.channel.basic_publish(
                 exchange='',
-                routing_key=MessageQueue.__connection_keys[3],  #
+                routing_key=MessageQueue.__connection_keys[3],  # send the message to the scheduler/processor
                 body=message,
                 properties=BasicProperties(
                     delivery_mode=PERSISTENT_DELIVERY_MODE
