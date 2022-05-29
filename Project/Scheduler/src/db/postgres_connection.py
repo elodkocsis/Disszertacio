@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from src.utils import read_config_file, eprint
+from src.utils import read_config_file, eprint, dict_has_necessary_keys
 
 
 def get_postgres_connection_string_with_params(host: str,
@@ -49,11 +49,8 @@ def get_postgres_connection_string_with_dict(params: Dict) -> Optional[str]:
     # keys to look for which are needed to create the connection string for SQLAlchemy
     keys = ["postgresql_host", "postgresql_port", "postgresql_user", "postgresql_pass", "postgresql_db"]
 
-    # checking for missing parameters in the received dictionary using set operations
-    diff = set(keys) - set(params.keys())
-
-    if len(diff) > 0:
-        eprint("The following parameters are missing: {}".format(",".join(diff)))
+    # checking for missing parameters in the received dictionary
+    if not dict_has_necessary_keys(dict_to_check=params, needed_keys=keys):
         return None
 
     return get_postgres_connection_string_with_params(host=params[keys[0]],
