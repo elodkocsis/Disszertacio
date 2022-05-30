@@ -41,9 +41,6 @@ In case the data changes, change them accordingly in the configuration file.
 
 ### Running in Docker
 
-Since the tool has to go through more than 210 mil chatters, it is advised to run the tool in docker,
-preferably on a server which can connect to the mongodb instance that has to be scrubbed.
-
 1. Build the image
     
     ```shell
@@ -58,7 +55,7 @@ preferably on a server which can connect to the mongodb instance that has to be 
 2. Run the container
 
     ```shell
-    docker run -d --name scraper --network crawler scraper:latest
+    docker run -d --name scraper --network crawler_network scraper:latest
     ```
 
 ## Author
