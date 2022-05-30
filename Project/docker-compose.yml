@@ -14,6 +14,8 @@ services:
     volumes: 
       - postgres_data_volume:/var/lib/postgresql/data
       - ./DB/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    networks:
+        - crawler
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 10s
@@ -30,11 +32,34 @@ services:
     volumes:
         - ./MQ/data/:/var/lib/rabbitmq/
         - ./MQ/log/:/var/log/rabbitmq
+    networks:
+        - crawler
     healthcheck:
-      test: ["rabbitmq-diagnostics", "-q", "ping"]
+      test: rabbitmq-diagnostics -q ping
       interval: 30s
       timeout: 30s
       retries: 3
+
+  scheduler:
+    build:
+      context: ./Scheduler
+      dockerfile: Dockerfile_scheduler
+    image: 'scheduler'
+    # restart: on-failure  # TODO: switch this to always after the sleeper was implemented
+    container_name: 'scheduler'
+    networks:
+        - crawler
+    depends_on:
+        rabbitmq:
+          condition: service_healthy
+        db:
+          condition: service_healthy
+          
+
+networks:
+    crawler:
+      name: crawler-network
+      driver: bridge  
 
 volumes:
   postgres_data_volume:
