@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from src.db.PageDBModel import Page
 from src.db.database import session_scope
 from src.db.db_operations import update_page, get_existing_page, add_page
-from src.utils import dict_has_necessary_keys, eprint
+from src.utils.general import dict_has_necessary_keys, eprint
 
 
 def process_scraped_result(result_dictionary: Dict) -> Optional[Page]:

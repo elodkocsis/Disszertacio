@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from src.utils import eprint
+from src.utils.general import eprint
 from src.db.postgres_connection import get_postgres_connection_string_with_config_file
 
 

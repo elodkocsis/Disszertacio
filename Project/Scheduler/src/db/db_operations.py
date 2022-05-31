@@ -5,7 +5,7 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 
 from src.db.PageDBModel import Page
-from src.utils import eprint, dict_has_necessary_keys
+from src.utils.general import eprint
 
 
 def get_page_urls_to_scrape(session: Session, access_day_difference: int) -> Optional[List[str]]:

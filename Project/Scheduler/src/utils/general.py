@@ -1,5 +1,7 @@
+import sys
 from sys import stderr
 from typing import Optional, Dict, List
+from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 
 
@@ -51,3 +53,25 @@ def dict_has_necessary_keys(dict_to_check: Dict, needed_keys: List) -> bool:
         return False
 
     return True
+
+
+def parse_commandline_args() -> Namespace:
+    """
+    Function which parses the command line arguments.
+
+    :return: Namespace containing the command line arguments.
+
+    """
+    parser = ArgumentParser()
+    parser.add_argument('-c',
+                        '--config_file',
+                        type=str,
+                        help='Location of the config file')
+
+    # sneaky trick to make an optional argument required
+    params = len(sys.argv)
+    if params != 3:  # because 1. script; 2. flag; 3. parameter
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    return parser.parse_args()

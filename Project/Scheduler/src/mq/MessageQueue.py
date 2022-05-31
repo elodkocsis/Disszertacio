@@ -5,7 +5,7 @@ from typing import Dict, Optional, List, Callable
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
-from src.utils import eprint, dict_has_necessary_keys
+from src.utils.general import eprint, dict_has_necessary_keys
 
 
 class MessageQueue:

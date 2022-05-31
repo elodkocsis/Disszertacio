@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from src.utils import read_config_file, eprint, dict_has_necessary_keys
+from src.utils.general import read_config_file, dict_has_necessary_keys
 
 
 def get_postgres_connection_string_with_params(host: str,

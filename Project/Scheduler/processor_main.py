@@ -1,8 +1,8 @@
 import sys
 import signal
 
-from src.signal_handler import get_signal_handler_method
-from src.utils import read_config_file
+from src.utils.signal_handler import get_signal_handler_method
+from src.utils.general import read_config_file
 from src.mq.MessageQueue import MessageQueue
 from src.processor.result_processor import process_scraped_result
 

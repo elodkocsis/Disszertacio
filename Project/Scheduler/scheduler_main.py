@@ -4,13 +4,20 @@ import sys
 from src.db.database import session_scope
 from src.db.db_operations import get_page_urls_to_scrape
 from src.mq.MessageQueue import MessageQueue
-from src.signal_handler import get_signal_handler_method
-from src.utils import read_config_file
+from src.utils.Sleeper import Sleeper
+from src.utils.signal_handler import get_signal_handler_method
+from src.utils.general import read_config_file, parse_commandline_args
 
 if __name__ == '__main__':
 
+    # get command line arguments
+    args = parse_commandline_args()
+
+    # sleep if necessary
+    Sleeper()(hours=1)
+
     # get the parameters for connecting to the message queue
-    if (mq_params := read_config_file(config_file="config.conf", section="MQ")) is None:
+    if (mq_params := read_config_file(config_file=args.config_file, section="MQ")) is None:
         sys.exit(3)
 
     # create connect to the message queue
