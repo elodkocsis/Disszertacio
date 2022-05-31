@@ -45,7 +45,7 @@ services:
       context: ./Scheduler
       dockerfile: Dockerfile_scheduler
     image: 'scheduler'
-    # restart: on-failure  # TODO: switch this to always after the sleeper was implemented
+    restart: always
     container_name: 'scheduler'
     networks:
         - crawler
