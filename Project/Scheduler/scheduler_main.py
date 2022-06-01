@@ -11,7 +11,7 @@ from src.utils.general import read_config_file, get_config_file_location
 if __name__ == '__main__':
 
     # sleep if necessary
-    # Sleeper()(hours=1)
+    Sleeper()(hours=1)
 
     # get the parameters for connecting to the message queue
     if (mq_params := read_config_file(config_file=get_config_file_location(), section="MQ")) is None:
