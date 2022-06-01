@@ -3,6 +3,8 @@ from sys import stderr
 from typing import Optional, Dict, List
 from configparser import ConfigParser
 
+from environs import Env
+
 
 def read_config_file(config_file: str, section: str) -> Optional[Dict]:
     """
@@ -68,3 +70,30 @@ def dict_has_necessary_keys(dict_to_check: Dict, needed_keys: List) -> bool:
 
     return True
 
+
+def running_in_docker() -> bool:
+    """
+    Function which determines if the application is running in a Docker container by checking the environment variable
+    "AM_I_IN_A_DOCKER_CONTAINER".
+
+    :return: True if script is running in a docker container, otherwise False.
+
+    """
+
+    try:
+        return Env().bool("AM_I_IN_A_DOCKER_CONTAINER", False)
+    except Exception:
+        return False
+
+
+def get_config_file_location() -> str:
+    """
+    Function which returns the config file location based on the environment the application is running in.
+
+    :return: Path to the config file.
+
+    """
+    if running_in_docker():
+        return "config.conf"
+
+    return "config_local.conf"

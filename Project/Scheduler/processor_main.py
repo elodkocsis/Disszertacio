@@ -2,14 +2,14 @@ import sys
 import signal
 
 from src.utils.signal_handler import get_signal_handler_method
-from src.utils.general import read_config_file
+from src.utils.general import read_config_file, get_config_file_location
 from src.mq.MessageQueue import MessageQueue
 from src.processor.result_processor import process_scraped_result
 
 
 if __name__ == '__main__':
     # get the parameters for connecting to the message queue
-    if (mq_params := read_config_file(config_file="config.conf", section="MQ")) is None:
+    if (mq_params := read_config_file(config_file=get_config_file_location(), section="MQ")) is None:
         sys.exit(3)
 
     # create connect to the message queue
