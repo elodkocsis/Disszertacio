@@ -10,4 +10,4 @@ RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 
 ENV AM_I_IN_A_DOCKER_CONTAINER True
 
-ENTRYPOINT ["python3", "scheduler_main.py"]
+ENTRYPOINT ["python3", "processor_main.py"]

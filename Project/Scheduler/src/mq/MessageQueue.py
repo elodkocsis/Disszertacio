@@ -90,7 +90,6 @@ class MessageQueue:
                 # if this is the first time reaching this point, exit
                 if not was_consuming_before:
                     return
-
                 eprint("Retrying in 10 seconds...")
                 time.sleep(10)
                 continue
