@@ -13,7 +13,7 @@ class MessageQueue:
     # keys to look for on the connection parameter dictionary
     __connection_keys = ["mq_host", "mq_port", "mq_worker_queue", "mq_processor_queue"]
 
-    def __init__(self, param_dict: Dict, function_to_execute: Callable[[str], Dict]):
+    def __init__(self, param_dict: Dict, function_to_execute: Callable[[str], Optional[Dict]]):
         """
         Initializer method.
 
@@ -147,26 +147,19 @@ class MessageQueue:
             # get the url
             url = body.decode()
 
-            # check if url is a valid onion link
-            if not is_onion_link(link=url):
-                print(f' [x] URL "{url}" is not a valid onion link!')
-
-                # acknowledge that it has been processed even if it's not a valid link we want to deal with
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                return
-
             # TODO: maybe switch out the prints for logging?
             print(f' [x] URL to work with: "{url}"...')
 
             # run the job with the url
-            result = self.function_to_execute(url)
+            if (result := self.function_to_execute(url)) is not None:
+                print(f" [x] URL {url} processed.")
 
-            print(f" [x] URL {url} processed.")
-
-            # send back the result
-            if self._send_message(data=result):
-
-                # acknowledge that the task is done only when the response has been sent back successfully
+                # send back the result
+                if self._send_message(data=result):
+                    # acknowledge that the task is done only when the response has been sent back successfully
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+            else:
+                # if the processing of the URL fails, we still need to acknowledge it
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 
         return callback
