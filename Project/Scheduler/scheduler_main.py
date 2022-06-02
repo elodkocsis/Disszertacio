@@ -31,4 +31,7 @@ if __name__ == '__main__':
         if(list_of_urls_to_scrape := get_page_urls_to_scrape(session=session, access_day_difference=1)) is not None:
             # send each url on their way through the MQ
             for url in list_of_urls_to_scrape:
-                message_queue.send_message(data=url)
+                # if we cannot send a message, we stop the whole process -> most likely MQ is down
+                # we will retry on the next run
+                if not message_queue.send_message(data=url):
+                    break

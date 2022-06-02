@@ -14,7 +14,8 @@ def get_signal_handler_method(mq: MessageQueue) -> Callable:
     """
 
     def delete_mq(sig, frame):
-        mq.close_connection()
+        if mq.channel.is_open:
+            mq.close_connection()
         sys.exit(0)
 
     return delete_mq
