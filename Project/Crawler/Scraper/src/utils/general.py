@@ -5,6 +5,10 @@ from configparser import ConfigParser
 
 from environs import Env
 
+from src.utils.logger import get_logger
+
+# get logger
+logger = get_logger()
 
 def read_config_file(config_file: str, section: str) -> Optional[Dict]:
     """
@@ -22,18 +26,10 @@ def read_config_file(config_file: str, section: str) -> Optional[Dict]:
     try:
         param_dict = dict(config_parser.items(section))
     except Exception as e:
-        eprint(f"Error while reading config file: {e}")
+        logger.error(f"Error while reading config file: {e}")
         param_dict = None
 
     return param_dict
-
-
-def eprint(*args, **kwargs):
-    """
-    Method which prints to STDERR.
-
-    """
-    print(*args, file=stderr, **kwargs)
 
 
 def is_onion_link(link: str) -> bool:
@@ -65,7 +61,7 @@ def dict_has_necessary_keys(dict_to_check: Dict, needed_keys: List) -> bool:
     diff = set(needed_keys) - set(dict_to_check.keys())
 
     if len(diff) > 0:
-        eprint("Parameters missing from dict: {}".format(",".join(diff)))
+        logger.warning("Parameters missing from dict: {}".format(",".join(diff)))
         return False
 
     return True

@@ -1,7 +1,7 @@
 import sys
 from typing import Callable
 
-from src.message_queue import MessageQueue
+from src.mq.message_queue import MessageQueue
 
 
 def get_signal_handler_method(mq: MessageQueue) -> Callable:
