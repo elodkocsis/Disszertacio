@@ -2,8 +2,10 @@ from datetime import datetime
 from typing import Optional
 from time import sleep
 
-from src.utils.general import eprint
+from src.utils.logger import get_logger
 
+# get logger
+logger = get_logger()
 
 class Sleeper:
     """
@@ -56,7 +58,7 @@ class Sleeper:
                 file.write(datetime.now().strftime("%Y-%b-%d %H:%M:%S"))
         except Exception as e:
             # we are not doing anything if write does not succeed
-            eprint(f"Exception when writing the current datetime to file: {e}")
+            logger.warning(f"Exception when writing the current datetime to file: {e}")
 
     def _read_last_datetime(self) -> Optional[datetime]:
         """

@@ -6,7 +6,11 @@ from typing import Dict, Optional, List, Callable
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
-from src.utils.general import eprint, dict_has_necessary_keys
+from src.utils.general import dict_has_necessary_keys
+from src.utils.logger import get_logger
+
+# get logger
+logger = get_logger()
 
 
 class MessageQueue:
@@ -30,7 +34,7 @@ class MessageQueue:
 
         # trying to establish connection to the MQ
         if not self._connect(param_dict=self.param_dict):
-            eprint(f"Couldn't connect to the MQ!")
+            logger.error(f"Couldn't connect to the MQ!")
             sys.exit(1)
 
     def close_connection(self):
@@ -59,11 +63,11 @@ class MessageQueue:
                 # making it durable for persistence purposes
                 self.channel.queue_declare(queue=MessageQueue.__connection_keys[3], durable=True)
             except Exception as e:
-                eprint(f"Exception when trying to declare queue {MessageQueue.__connection_keys[3]}: {e}")
+                logger.warning(f"Exception when trying to declare queue {MessageQueue.__connection_keys[3]}: {e}")
                 # if this is the first time reaching this point, and the queue declaration failed, exit
                 if not was_consuming_before:
                     return
-                eprint("Retrying in 10 seconds...")
+                logger.warning("Retrying in 10 seconds...")
                 time.sleep(10)
                 continue
 
@@ -71,11 +75,11 @@ class MessageQueue:
             try:
                 self.channel.basic_qos(prefetch_count=1)
             except Exception as e:
-                eprint(f"Exception when defining basic_qos: {e}")
+                logger.warning(f"Exception when defining basic_qos: {e}")
                 # if this is the first time reaching this point, exit
                 if not was_consuming_before:
                     return
-                eprint("Retrying in 10 seconds...")
+                logger.warning("Retrying in 10 seconds...")
                 time.sleep(10)
                 continue
 
@@ -86,11 +90,11 @@ class MessageQueue:
                 self.channel.basic_consume(queue=MessageQueue.__connection_keys[3],
                                            on_message_callback=self._on_message())
             except Exception as e:
-                eprint(f"Exception when defining consume method: {e}")
+                logger.warning(f"Exception when defining consume method: {e}")
                 # if this is the first time reaching this point, exit
                 if not was_consuming_before:
                     return
-                eprint("Retrying in 10 seconds...")
+                logger.warning("Retrying in 10 seconds...")
                 time.sleep(10)
                 continue
 
@@ -99,8 +103,8 @@ class MessageQueue:
                 self.channel.start_consuming()
             except Exception as e:
                 # if the MQ goes down, we will try to reconnect to the MQ
-                eprint(f"Exception when trying to start consuming messages: {e}")
-                eprint("Retrying in 10 seconds...")
+                logger.warning(f"Exception when trying to start consuming messages: {e}")
+                logger.warning("Retrying in 10 seconds...")
                 time.sleep(10)
                 was_consuming_before = True
 
@@ -152,12 +156,11 @@ class MessageQueue:
                 # get the returned data
                 data = body.decode()
 
-                # TODO: maybe switch out the prints for logging?
-                print(f' [x] Data received. Processing data...')
+                logger.info(f'Data received. Processing data...')
 
                 # run the job with the received data
                 if (page := self.function_to_execute(data)) is not None:
-                    print(f' [x] Data processed. Page "{page}" added to database.')
+                    logger.info(f'Data processed. Page "{page}" added to database.')
 
                     # acknowledge that the task is done if the function doesn't return None.
                     ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -177,7 +180,7 @@ class MessageQueue:
         try:
             message = bytes(json.dumps(data, ensure_ascii=False).encode('utf8'))
         except Exception as e:
-            eprint(f"Couldn't convert data dict to bytes: {e}")
+            logger.warning(f"Couldn't convert data dict to bytes: {e}")
             return False
 
         # send the message
@@ -190,7 +193,7 @@ class MessageQueue:
                     delivery_mode=PERSISTENT_DELIVERY_MODE  # persisting message
                 ))
         except Exception as e:
-            eprint(f"Couldn't send message: {e}")
+            logger.warning(f"Couldn't send message: {e}")
             return False
 
         return True
@@ -212,7 +215,7 @@ class MessageQueue:
         try:
             return BlockingConnection(ConnectionParameters(host=host, port=port))
         except Exception as e:
-            eprint(f"Error creating connection object to MQ: {e}")
+            logger.warning(f"Error creating connection object to MQ: {e}")
             return None
 
     @staticmethod

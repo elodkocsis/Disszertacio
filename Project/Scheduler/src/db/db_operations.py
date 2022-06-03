@@ -5,7 +5,10 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 
 from src.db.PageDBModel import Page
-from src.utils.general import eprint
+from src.utils.logger import get_logger
+
+# get logger
+logger = get_logger()
 
 
 def get_page_urls_to_scrape(session: Session, access_day_difference: int) -> Optional[List[str]]:
@@ -36,7 +39,7 @@ def get_page_urls_to_scrape(session: Session, access_day_difference: int) -> Opt
         ) \
             .all()
     except Exception as e:
-        eprint(f"Exception when querying new page urls: {e}")
+        logger.warning(f"Exception when querying new page urls: {e}")
         return None
 
     # the elements in the "pages" list are of type Row(tuple), thus we need to extract the first element, the url
@@ -67,7 +70,7 @@ def update_page(session: Session, existing_page: Page, new_page_data: Dict) -> O
         session.add(existing_page)
         session.commit()
     except Exception as e:
-        eprint(f"Exception while trying to update record in the database {e}")
+        logger.warning(f"Exception while trying to update record in the database {e}")
         return None
 
     return existing_page
@@ -113,7 +116,7 @@ def add_page(session: Session, new_page_data: Dict, is_new_url: bool) -> Optiona
         session.add(new_page)
         session.commit()
     except Exception as e:
-        eprint(f"Exception while trying to insert record into the database {e}")
+        logger.warning(f"Exception while trying to insert record into the database {e}")
         return None
 
     return new_page
