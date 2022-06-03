@@ -18,7 +18,7 @@ class MessageQueue:
     # keys to look for on the connection parameter dictionary
     __connection_keys = ["mq_host", "mq_port", "mq_worker_queue", "mq_processor_queue"]
 
-    def __init__(self, param_dict: Dict, function_to_execute: Optional[Callable[[str], Optional[ProcessingResult]]]):
+    def __init__(self, param_dict: Dict, function_to_execute: Optional[Callable[[str], ProcessingResult]]):
         """
         Initializer method.
 
