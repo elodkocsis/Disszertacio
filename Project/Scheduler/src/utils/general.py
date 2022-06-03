@@ -102,3 +102,19 @@ def get_config_file_location() -> str:
         return "config.conf"
 
     return "config_local.conf"
+
+
+def strip_quotes(string: str) -> str:
+    """
+    Function which strips the quotation marks from strings.
+
+    :param string: The string we want to strip of the quotation marks.
+    :return: String stripped of quotation marks.
+    """
+
+    quotation_marks = ['"', "'", "`"]
+
+    for mark in quotation_marks:
+        string = string.replace(mark, "")
+
+    return string

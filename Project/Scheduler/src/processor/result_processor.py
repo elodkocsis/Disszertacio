@@ -1,15 +1,18 @@
 import json
-from typing import Dict, Optional
 
 from src.db.PageDBModel import Page
 from src.db.database import session_scope
 from src.db.db_operations import update_page, get_existing_page, add_page
+from src.utils.Blacklist import Blacklist
 from src.utils.enums import ProcessingResult
-from src.utils.general import dict_has_necessary_keys
+from src.utils.general import dict_has_necessary_keys, strip_quotes
 from src.utils.logger import get_logger
 
 # get logger
 logger = get_logger()
+
+# load the blacklist
+blacklist = Blacklist()
 
 
 def process_scraped_result(received_data: str) -> ProcessingResult:
@@ -39,6 +42,11 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
     # getting the url
     url = result_dictionary[keys[0]]
 
+    # if the page url is blacklisted, don't save it
+    if blacklist.is_url_blacklisted(url=url):
+        # we will consider it a successful processing, but we are not going to save it
+        return ProcessingResult.SUCCESS
+
     # getting the links
     links = result_dictionary[keys[3]]
 
@@ -57,8 +65,12 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
 
         # go through all the links collected and create and save a new Page object into the database
         for link in links:
+            # check if link is in the blacklist
+            if blacklist.is_url_blacklisted(url=link):
+                continue
+
             data_for_link = {
-                keys[0]: link,  # url
+                keys[0]: strip_quotes(string=link),  # url
                 keys[1]: None,  # page content
                 keys[2]: None,  # meta tags
             }
