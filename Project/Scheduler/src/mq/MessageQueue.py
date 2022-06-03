@@ -6,6 +6,7 @@ from typing import Dict, Optional, List, Callable
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
+from src.utils.enums import ProcessingResult
 from src.utils.general import dict_has_necessary_keys
 from src.utils.logger import get_logger
 
@@ -17,7 +18,7 @@ class MessageQueue:
     # keys to look for on the connection parameter dictionary
     __connection_keys = ["mq_host", "mq_port", "mq_worker_queue", "mq_processor_queue"]
 
-    def __init__(self, param_dict: Dict, function_to_execute: Optional[Callable[[Dict], Optional[Dict]]]):
+    def __init__(self, param_dict: Dict, function_to_execute: Optional[Callable[[str], Optional[ProcessingResult]]]):
         """
         Initializer method.
 
@@ -159,11 +160,25 @@ class MessageQueue:
                 logger.info(f'Data received. Processing data...')
 
                 # run the job with the received data
-                if (page := self.function_to_execute(data)) is not None:
-                    logger.info(f'Data processed. Page "{page}" added to database.')
+                processing_result = self.function_to_execute(data)
 
-                    # acknowledge that the task is done if the function doesn't return None.
+                # check the result of the processing operation
+                if processing_result == ProcessingResult.SUCCESS:
+                    logger.info("Data processed.")
                     ch.basic_ack(delivery_tag=method.delivery_tag)
+
+                if processing_result == ProcessingResult.PROCESSING_FAILED:
+                    logger.warning(f"Couldn't process data:\n{data}\n")
+                    # if processing fails it is because the data is faulty
+                    # we ack the message as we don't want it to occupy space in the queue
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+                if processing_result == ProcessingResult.SAVE_FAILED:
+                    # if we cannot save it to the database, is most likely because the database is unreachable
+                    # in this case we don't want to nack it, so the data will be rescheduled for processing and
+                    # added to the database later
+                    logger.warning("Couldn't save processed data into the database!")
+                    ch.basic_nack(delivery_tag=method.delivery_tag)
 
         return callback
 

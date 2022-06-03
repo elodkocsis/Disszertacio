@@ -20,13 +20,13 @@ else:
 
 # create the engine
 try:
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 except Exception as e:
     logger.error(f"Couldn't create database engine: {e}")
     sys.exit(2)
 
 # create a session maker
-session_maker = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+session_maker = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 
 # create the base for models(tables)
 Base = declarative_base()
