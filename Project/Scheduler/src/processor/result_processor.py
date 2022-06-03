@@ -44,6 +44,7 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
 
     # if the page url is blacklisted, don't save it
     if blacklist.is_url_blacklisted(url=url):
+        logger.warning(f"URL: {url} is blacklisted! Skipping...")
         # we will consider it a successful processing, but we are not going to save it
         return ProcessingResult.SUCCESS
 
@@ -67,6 +68,7 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
         for link in links:
             # check if link is in the blacklist
             if blacklist.is_url_blacklisted(url=link):
+                logger.warning(f"Link: {link} is blacklisted! Skipping...")
                 continue
 
             data_for_link = {
