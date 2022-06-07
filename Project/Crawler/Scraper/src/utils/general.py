@@ -10,6 +10,7 @@ from src.utils.logger import get_logger
 # get logger
 logger = get_logger()
 
+
 def read_config_file(config_file: str, section: str) -> Optional[Dict]:
     """
     Function which reads a configuration file and returns the configuration parameters as a Dict.
@@ -30,21 +31,6 @@ def read_config_file(config_file: str, section: str) -> Optional[Dict]:
         param_dict = None
 
     return param_dict
-
-
-def is_onion_link(link: str) -> bool:
-    """
-    Function which checks if the received link is an onion link.
-
-    :param link: Link to be checked.
-    :return: True, if the link is and onion link, otherwise False.
-
-    """
-
-    if (_ := re.match(r'(?:https?://)?(?:www)?(\S*?\.onion)\b', link)) is None:
-        return False
-
-    return True
 
 
 def dict_has_necessary_keys(dict_to_check: Dict, needed_keys: List) -> bool:
@@ -93,3 +79,31 @@ def get_config_file_location() -> str:
         return "config.conf"
 
     return "config_local.conf"
+
+
+def strip_quotes(string: str) -> str:
+    """
+    Function which strips the quotation marks from strings.
+
+    :param string: The string we want to strip of the quotation marks.
+    :return: String stripped of quotation marks.
+    """
+
+    quotation_marks = ['"', "'", "`"]
+
+    for mark in quotation_marks:
+        string = string.replace(mark, "")
+
+    return string
+
+
+def remove_duplicates(list_of_strings: List[str]) -> List[str]:
+    """
+    Function which removes the duplicate elements from a list.
+
+    :param list_of_strings: List of strings to filter.
+    :return: Filtered list.
+
+    """
+
+    return list(set(list_of_strings))
