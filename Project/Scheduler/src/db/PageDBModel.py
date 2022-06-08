@@ -11,6 +11,7 @@ class Page(Base):
 
     url = Column(String, primary_key=True, index=True, unique=True)
     date_accessed = Column(DateTime, nullable=True, index=True)
+    page_title = Column(Text, nullable=True)
     page_content = Column(Text, nullable=True)
     meta_tags = Column(JSON, nullable=True)
     parent_url = Column(String, nullable=True, index=True)
@@ -29,4 +30,4 @@ class Page(Base):
         :return: List of strings of necessary keys.
 
         """
-        return ["url", "page_content", "meta_tags", "links"]
+        return ["url", "page_title", "page_content", "meta_tags", "links"]

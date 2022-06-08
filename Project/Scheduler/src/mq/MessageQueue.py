@@ -1,4 +1,3 @@
-import json
 import sys
 import time
 from typing import Dict, Optional, List, Callable
@@ -52,6 +51,8 @@ class MessageQueue:
         Method which reads data from the MQ and executes the task received.
 
         """
+
+        logger.info("Start working...")
 
         was_consuming_before = False
 
@@ -153,7 +154,6 @@ class MessageQueue:
             # in the case of the scheduler, this should NOT be executed -> the scheduler should not call
             # the "start_processing_worker_responses" method!!!
             if self.function_to_execute is not None:
-                # TODO: check if this needs an UTF-8 decoding
                 # get the returned data
                 data = body.decode()
 
@@ -182,18 +182,18 @@ class MessageQueue:
 
         return callback
 
-    def send_message(self, data: Dict) -> bool:
+    def send_message(self, data: str) -> bool:
         """
         Function which sends a message to the MQ.
 
-        :param data: Data dictionary to be sent.
+        :param data: Data string to be sent.
         :return: True if the message was sent, False if and error occurred.
 
         """
 
         # convert dict to bytes
         try:
-            message = bytes(json.dumps(data, ensure_ascii=False).encode('utf8'))
+            message = bytes(data.encode('UTF-8'))
         except Exception as e:
             logger.warning(f"Couldn't convert data dict to bytes: {e}")
             return False

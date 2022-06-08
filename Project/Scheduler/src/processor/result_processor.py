@@ -1,8 +1,10 @@
 import json
+import time
+from typing import Dict
 
 from src.db.PageDBModel import Page
 from src.db.database import session_scope
-from src.db.db_operations import update_page, get_existing_page, add_page
+from src.db.db_operations import update_page, get_existing_page, add_page, get_all_page_urls_is_database
 from src.utils.Blacklist import Blacklist
 from src.utils.enums import ProcessingResult
 from src.utils.general import dict_has_necessary_keys, strip_quotes
@@ -49,7 +51,7 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
         return ProcessingResult.SUCCESS
 
     # getting the links
-    links = result_dictionary[keys[3]]
+    links = result_dictionary[keys[4]]
 
     with session_scope() as session:
         try:
@@ -64,6 +66,12 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
             logger.error(f"Couldn't save page to database: {e}")
             return ProcessingResult.SAVE_FAILED
 
+        if (existing_page_urls := get_all_page_urls_is_database(session=session)) is None:
+            # if we can't query all the existing page URLs, we will say that everything is fine for now
+            # this should only happen if the database goes down right after the addition or update from before
+            # TODO: maybe check this out in the future?
+            return ProcessingResult.SUCCESS
+
         # go through all the links collected and create and save a new Page object into the database
         for link in links:
             # check if link is in the blacklist
@@ -73,14 +81,17 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
 
             data_for_link = {
                 keys[0]: strip_quotes(string=link),  # url
-                keys[1]: None,  # page content
-                keys[2]: None,  # meta tags
+                keys[1]: None,  # page title
+                keys[2]: None,  # page content
+                keys[3]: None,  # meta tags
             }
 
-            # adding new entry into the database for the new link
-            if (_ := add_page(session=session, new_page_data=data_for_link, is_new_url=True)) is None:
-                # the only thing we do here is just printing about the issue
-                # if this operation fails, we can fix the code and on the next run we will get the missed links
-                logger.warning(f"Couldn't add Page object to database for new link: '{link}'!")
+            # add the new link only if it's not already present in the database
+            if link not in existing_page_urls:
+                # adding new entry into the database for the new link
+                if (_ := add_page(session=session, new_page_data=data_for_link, is_new_url=True)) is None:
+                    # the only thing we do here is just printing about the issue
+                    # if this operation fails, we can fix the code and on the next run we will get the missed links
+                    logger.warning(f"Couldn't add Page object to database for new link: '{link}'!")
 
         return ProcessingResult.SUCCESS

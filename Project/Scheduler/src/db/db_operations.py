@@ -1,5 +1,6 @@
+from random import shuffle
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Set
 
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
@@ -43,7 +44,32 @@ def get_page_urls_to_scrape(session: Session, access_day_difference: int) -> Opt
         return None
 
     # the elements in the "pages" list are of type Row(tuple), thus we need to extract the first element, the url
-    return [row[0] for row in pages] if len(pages) > 0 else []
+    list_of_pages = [row[0] for row in pages] if len(pages) > 0 else []
+
+    # shuffle elements in the list
+    shuffle(list_of_pages)
+
+    logger.info(f"Number of URLs scheduled for this run: {len(list_of_pages)}")
+
+    return list_of_pages
+
+
+def get_all_page_urls_is_database(session: Session) -> Optional[Set[str]]:
+    """
+    Function which returns the set of page URLs present in the database.
+
+    :param session: Session object for database
+    :return: Set of page URLs present in the database.
+
+    """
+    try:
+        pages = session.query(Page.url).all()
+    except Exception as e:
+        logger.warning(f"Exception when querying all URLs from database: {e}")
+        return None
+
+    # set comprehension
+    return {row[0] for row in pages} if len(pages) > 0 else {}
 
 
 def update_page(session: Session, existing_page: Page, new_page_data: Dict) -> Optional[Page]:
@@ -60,10 +86,11 @@ def update_page(session: Session, existing_page: Page, new_page_data: Dict) -> O
     keys = Page.get_list_of_required_columns_for_update()
 
     # update the relevant fields
-    existing_page.page_content = new_page_data[keys[1]]      # key for content
-    existing_page.meta_tags = new_page_data[keys[2]]    # key for meta tags
-    existing_page.date_accessed = datetime.now()        # update with the current time
-    existing_page.new_url = False                       # specify that this is no more a new url
+    existing_page.page_title = new_page_data[keys[1]]       # key for title
+    existing_page.page_content = new_page_data[keys[2]]     # key for content
+    existing_page.meta_tags = new_page_data[keys[3]]        # key for meta tags
+    existing_page.date_accessed = datetime.now()            # update with the current time
+    existing_page.new_url = False                           # specify that this is no more a new url
 
     # try to save and commit
     try:
@@ -106,8 +133,9 @@ def add_page(session: Session, new_page_data: Dict, is_new_url: bool) -> Optiona
     # create new page object
     new_page = Page(url=new_page_data[keys[0]],
                     date_accessed=None if is_new_url else datetime.now(),  # new URLs were not accessed
-                    page_content=new_page_data[keys[1]],
-                    meta_tags=new_page_data[keys[2]],
+                    page_title=new_page_data[keys[1]],
+                    page_content=new_page_data[keys[2]],
+                    meta_tags=new_page_data[keys[3]],
                     new_url=is_new_url,
                     date_added=datetime.now())
 

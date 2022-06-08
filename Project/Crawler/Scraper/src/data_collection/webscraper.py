@@ -8,7 +8,8 @@ from src.utils.enums import ScrapingResult
 from src.utils.general import remove_duplicates
 from src.utils.logger import get_logger
 from src.data_collection.scraper_utils import get_tor_proxy_dict, get_request_headers, get_tld_with_protocol, \
-    url_has_fld, is_onion_link, remove_line_formatters, remove_multiple_spaces, remove_unusable_links
+    url_has_fld, is_onion_link, remove_line_formatters, remove_multiple_spaces, remove_unusable_links, \
+    remove_html_tags_from_string
 
 # get logger
 logger = get_logger()
@@ -24,7 +25,6 @@ def scrape_url(url: str) -> Union[ScrapingResult, Dict]:
     """
 
     # check if url is an onion link
-    # TODO: add this back before going for onion links
     if not is_onion_link(link=url):
         logger.error(f"URL '{url}' is not an onion link!")
         return ScrapingResult.INVALID_URL
@@ -46,9 +46,8 @@ def scrape_url(url: str) -> Union[ScrapingResult, Dict]:
 
     # extract relevant data from page
     content_dict = extract_relevant_content(url=url, parsed_content=parsed_content)
-    print(content_dict)
 
-    return {}  # content_dict
+    return content_dict
 
 
 def extract_relevant_content(url: str, parsed_content: BeautifulSoup) -> Optional[Dict]:
@@ -84,11 +83,14 @@ def extract_relevant_content(url: str, parsed_content: BeautifulSoup) -> Optiona
     # extract title
     extracted_title = h2t.handle(str(parsed_content.title).strip())
 
+    # format title
+    formatted_title = format_text(string=extracted_title)
+
     # extract body text
     extracted_body = h2t.handle(str(parsed_content.body).strip())
 
     # format text data
-    extracted_text = format_text(title=extracted_title, body=extracted_body)
+    extracted_text = format_content_text(title=extracted_title, body=extracted_body)
 
     # extract the meta tags
     # we are going for name here
@@ -97,6 +99,7 @@ def extract_relevant_content(url: str, parsed_content: BeautifulSoup) -> Optiona
 
     return {
         "url": url,
+        "page_title": formatted_title,
         "page_content": extracted_text,
         "links": extracted_urls,
         "meta_tags": extracted_meta_tags
@@ -125,19 +128,24 @@ def format_urls(url_being_scraped: str, list_of_urls: List[str]) -> Optional[Lis
     for url in list_of_urls:
         # remove section part
         parts = url.split("#")
-        url_without_section = parts[0]
+        url = parts[0]
+
+        # NOTE: will keep this commented for now
+        # remove parameters
+        # parts = url_without_section.split("?")
+        # url_without_params = parts[0]
 
         # if url doesn't contain FLD
-        if not url_has_fld(url=url_without_section):
+        if not url_has_fld(url=url):
             # add FLD to it
-            url_without_section = current_url + url_without_section
+            url = current_url + url
 
-        formatted_urls.append(url_without_section)
+        formatted_urls.append(url)
 
     return formatted_urls
 
 
-def format_text(title: str, body: str) -> str:
+def format_content_text(title: str, body: str) -> str:
     """
     Function which formats the title and body text of a webpage.
 
@@ -159,8 +167,29 @@ def format_text(title: str, body: str) -> str:
     # remove multiple spaces from body text
     body = remove_multiple_spaces(string=body)
 
+    # remove HTML tags from body text
+    body = remove_html_tags_from_string(string=body)
+
     # combine the title with the body text and return result
     return title + ". " + body
+
+
+def format_text(string: str) -> str:
+    """
+    Function which formats a given text.
+
+    :param string: Text to be formatted.
+    :return: Formatted text.
+
+    """
+
+    # remove line formatters
+    string = remove_line_formatters(string=string)
+
+    # remove multiple spaces
+    string = remove_multiple_spaces(string=string)
+
+    return string
 
 
 def send_request(url: str) -> Optional[requests.Response]:

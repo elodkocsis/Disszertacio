@@ -164,3 +164,16 @@ def remove_unusable_links(list_of_links: List[str]) -> List[str]:
     invalid_link_values = {"", "#", None}
 
     return [link for link in list_of_links if link not in invalid_link_values]
+
+
+def remove_html_tags_from_string(string: str) -> str:
+    """
+    Function which removes HTML tags from a string.
+
+    :param string: String from where HTML tags should be removed.
+    :return: Cleaned string.
+
+    """
+
+    clean_text = re.sub(r"<(?:\"[^\"]*\"['\"]*|'[^']*'['\"]*|[^'\">])+>", '', string)
+    return clean_text

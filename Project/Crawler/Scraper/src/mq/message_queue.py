@@ -7,7 +7,7 @@ from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
 from src.utils.enums import ScrapingResult
-from src.utils.general import dict_has_necessary_keys
+from src.utils.general import dict_has_necessary_keys, strip_quotes
 from src.utils.logger import get_logger
 
 # get logger
@@ -52,6 +52,9 @@ class MessageQueue:
         Method which reads data from the MQ, executes the task received and sends back the results.
 
         """
+
+        logger.info("Start working...")
+
         was_consuming_before = False
 
         while True:
@@ -148,11 +151,13 @@ class MessageQueue:
 
         def callback(ch, method, properties, body):  # Taken from documentation, not defining param types.
 
-            # TODO: check if this needs an UTF-8 decoding
             # get the url
             url = body.decode()
 
-            logger.info(f'URL to work with: {url}...')
+            # strip the quotes from the url
+            url = strip_quotes(string=url)
+
+            logger.info(f"URL to work with: '{url}'...")
 
             # run the job with the url
             result = self.function_to_execute(url)
@@ -171,9 +176,9 @@ class MessageQueue:
                 if self._send_message(data=result):
                     # acknowledge that the task is done only when the response has been sent back successfully
                     ch.basic_ack(delivery_tag=method.delivery_tag)
-                    logger.info(f"URL {url} processed.")
+                    logger.info(f"URL '{url}' processed.")
                 else:
-                    logger.warning(f"Couldn't send back result for url: {url}!")
+                    logger.warning(f"Couldn't send back result for url: '{url}'!")
 
         return callback
 
@@ -188,7 +193,7 @@ class MessageQueue:
 
         # convert dict to bytes
         try:
-            message = bytes(json.dumps(data, ensure_ascii=False).encode('utf8'))
+            message = bytes(json.dumps(data, ensure_ascii=False).encode('UTF-8'))
         except Exception as e:
             logger.warning(f"Couldn't convert data dict to bytes: {e}")
             return False
