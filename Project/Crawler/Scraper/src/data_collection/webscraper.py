@@ -33,6 +33,10 @@ def scrape_url(url: str) -> Union[ScrapingResult, Dict]:
     if (response := send_request(url=url)) is None:
         return ScrapingResult.SCRAPING_FAILED
 
+    # if the status code isn't within the 200 range, we consider it failed
+    if response.status_code >= 300:
+        return ScrapingResult.SCRAPING_FAILED
+
     # parse content
     try:
         parsed_content = BeautifulSoup(response.content, "html.parser")

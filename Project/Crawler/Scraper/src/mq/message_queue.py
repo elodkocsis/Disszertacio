@@ -1,11 +1,12 @@
 import json
 import sys
 import time
-from typing import Dict, Optional, List, Callable
+from typing import Dict, Optional, List, Callable, Union
 
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
+from src.utils.enums import ScrapingResult
 from src.utils.general import dict_has_necessary_keys
 from src.utils.logger import get_logger
 
@@ -17,7 +18,7 @@ class MessageQueue:
     # keys to look for on the connection parameter dictionary
     __connection_keys = ["mq_host", "mq_port", "mq_worker_queue", "mq_processor_queue"]
 
-    def __init__(self, param_dict: Dict, function_to_execute: Callable[[str], Optional[Dict]]):
+    def __init__(self, param_dict: Dict, function_to_execute: Callable[[str], Union[ScrapingResult, Dict]]):
         """
         Initializer method.
 
@@ -154,18 +155,25 @@ class MessageQueue:
             logger.info(f'URL to work with: {url}...')
 
             # run the job with the url
-            if (result := self.function_to_execute(url)) is not None:
-                # send back the result
+            result = self.function_to_execute(url)
+
+            # check the result and acknowledge the message accordingly
+            if type(result) is ScrapingResult:
+                if result == ScrapingResult.INVALID_URL:
+                    # if the url is invalid, we acknowledge it to be removed from the queue
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                if result == ScrapingResult.SCRAPING_FAILED:
+                    # if the scraping failed, we are still going to acknowledge it, as we don't want other
+                    # scrapers to have to deal with it right now
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+            else:
+                logger.info("Sending message...")
                 if self._send_message(data=result):
                     # acknowledge that the task is done only when the response has been sent back successfully
                     ch.basic_ack(delivery_tag=method.delivery_tag)
                     logger.info(f"URL {url} processed.")
                 else:
                     logger.warning(f"Couldn't send back result for url: {url}!")
-            else:
-                # if the processing of the URL fails, we still need to acknowledge it
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                logger.warning(f"Couldn't process url: {url}!")
 
         return callback
 
@@ -186,17 +194,26 @@ class MessageQueue:
             return False
 
         # send the message
-        try:
-            self.channel.basic_publish(
-                exchange='',
-                routing_key=MessageQueue.__connection_keys[3],  # send the message to the scheduler/processor
-                body=message,
-                properties=BasicProperties(
-                    delivery_mode=PERSISTENT_DELIVERY_MODE  # persisting message
-                ))
-        except Exception as e:
-            logger.warning(f"Couldn't send message: {e}")
-            return False
+        while True:
+            # if the channel is not open, we try to reconnect
+            if not self.channel.is_open:
+                self._connect(param_dict=self.param_dict)
+                break
+
+            # if the channel is open, we try to send the message
+            try:
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key=MessageQueue.__connection_keys[3],  # send the message to the scheduler/processor
+                    body=message,
+                    properties=BasicProperties(
+                        delivery_mode=PERSISTENT_DELIVERY_MODE  # persisting message
+                    ))
+                break
+            except Exception as e:
+                logger.warning(f"Couldn't send message: {e}")
+                logger.warning(f"Retrying message send in 10 seconds...")
+                time.sleep(10)
 
         return True
 
