@@ -20,7 +20,7 @@ class MessageQueue:
     __connection_keys = ["mq_host", "mq_port", "mq_worker_queue", "mq_processor_queue"]
 
     # number of request after which new TOR identity should be requested
-    __NUM_OF_REQ_BEFORE_NEW_IDENT = 3
+    __NUM_OF_REQ_BEFORE_NEW_IDENT = 10
 
     def __init__(self, param_dict: Dict, function_to_execute: Callable[[str], Union[ScrapingResult, Dict]]):
         """
