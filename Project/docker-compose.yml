@@ -16,6 +16,7 @@ services:
       - ./DB/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
     networks:
         - crawler
+        - engine
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 10s
@@ -55,11 +56,43 @@ services:
         db:
           condition: service_healthy
           
+  processor:
+    build:
+      context: ./Scheduler
+      dockerfile: Dockerfile_processor
+    image: 'processor'
+    restart: unless-stopped
+    container_name: 'processor'
+    networks:
+        - crawler
+    depends_on:
+        rabbitmq:
+          condition: service_healthy
+        db:
+          condition: service_healthy
+
+  scraper:
+    build:
+      context: ./Scraper
+      dockerfile: Dockerfile
+    image: 'scraper'
+    restart: unless-stopped
+    networks:
+        - crawler
+    depends_on:
+        rabbitmq:
+          condition: service_healthy
+    deploy:
+      mode: replicated                  # in order for this to work, use `--compatibility` flag when using docker-compose
+      replicas: 5
 
 networks:
     crawler:
       name: crawler-network
-      driver: bridge  
+      driver: bridge
+    engine:
+      name: engine-network
+      driver: bridge   
 
 volumes:
   postgres_data_volume:
