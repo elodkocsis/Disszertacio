@@ -6,6 +6,7 @@ from typing import Dict, Optional, List, Callable, Union
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
 from pika.spec import PERSISTENT_DELIVERY_MODE
 
+from src.data_collection.webscraper import change_tor_identity
 from src.utils.enums import ScrapingResult
 from src.utils.general import dict_has_necessary_keys, strip_quotes
 from src.utils.logger import get_logger
@@ -18,6 +19,9 @@ class MessageQueue:
     # keys to look for on the connection parameter dictionary
     __connection_keys = ["mq_host", "mq_port", "mq_worker_queue", "mq_processor_queue"]
 
+    # number of request after which new TOR identity should be requested
+    __NUM_OF_REQ_BEFORE_NEW_IDENT = 3
+
     def __init__(self, param_dict: Dict, function_to_execute: Callable[[str], Union[ScrapingResult, Dict]]):
         """
         Initializer method.
@@ -26,6 +30,9 @@ class MessageQueue:
         :param function_to_execute: Function to execute in response for the data received from the MQ.
 
         """
+
+        # init request counter
+        self.request_counter = 0
 
         # saving param dict
         self.param_dict = param_dict
@@ -168,6 +175,9 @@ class MessageQueue:
                     # if the url is invalid, we acknowledge it to be removed from the queue
                     ch.basic_ack(delivery_tag=method.delivery_tag)
                 if result == ScrapingResult.SCRAPING_FAILED:
+                    # count request and increment the request counter
+                    self._get_new_tor_ident()
+
                     # if the scraping failed, we are still going to acknowledge it, as we don't want other
                     # scrapers to have to deal with it right now
                     ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -179,6 +189,9 @@ class MessageQueue:
                     logger.info(f"URL '{url}' processed.")
                 else:
                     logger.warning(f"Couldn't send back result for url: '{url}'!")
+
+                # count request and increment the request counter
+                self._get_new_tor_ident()
 
         return callback
 
@@ -221,6 +234,23 @@ class MessageQueue:
                 time.sleep(10)
 
         return True
+
+    def _get_new_tor_ident(self):
+        """
+        Method which tries to change the TOR identity after a certain number of requests have been sent.
+
+        """
+
+        if self.request_counter >= self.__NUM_OF_REQ_BEFORE_NEW_IDENT:
+            logger.info("Requesting new TOR identity...")
+
+            # try changing TOR identity
+            if change_tor_identity():
+                self.request_counter = 0
+        else:
+            # increment request counter
+            self.request_counter += 1
+
 
     '''
     ######## Static methods #########

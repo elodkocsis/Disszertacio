@@ -3,6 +3,8 @@ from typing import Optional, Dict, Union, List
 import html2text
 import requests
 from bs4 import BeautifulSoup
+from stem import Signal
+from stem.control import Controller
 
 from src.utils.enums import ScrapingResult
 from src.utils.general import remove_duplicates
@@ -210,3 +212,21 @@ def send_request(url: str) -> Optional[requests.Response]:
         return None
 
     return result
+
+
+def change_tor_identity() -> bool:
+    """
+    Function which changes the TOR identity.
+
+    :return: True if the identity was changed, otherwise False.
+    """
+
+    try:
+        with Controller.from_port(port=9051) as controller:
+            controller.authenticate()
+            controller.signal(Signal.NEWNYM)
+    except Exception as e:
+        logger.warning(f"Exception when trying to request new TOR identity: {e}")
+        return False
+
+    return True
