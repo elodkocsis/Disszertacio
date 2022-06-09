@@ -1,9 +1,9 @@
 import sys
-from sys import stderr
 from typing import Optional, Dict, List
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 
+import tld
 from environs import Env
 
 from src.utils.logger import get_logger
@@ -118,3 +118,21 @@ def strip_quotes(string: str) -> str:
         string = string.replace(mark, "")
 
     return string
+
+
+def strip_url(url: str) -> str:
+    """
+    Function which strips URLs of the protocol and trailing backslash.
+
+    :param url: URL to be formatted.
+    :return: Formatted URL.
+
+    """
+
+    # we are pretty much extracting the fld
+    if (fld := tld.get_fld(url, fail_silently=True)) is None:
+        # we return an empty string, less hassle
+        return ""
+
+    return fld
+

@@ -1,6 +1,7 @@
 import sys
 import hashlib
 
+from src.utils.general import strip_url
 from src.utils.logger import get_logger
 
 # get logger
@@ -50,6 +51,9 @@ class Blacklist:
         """
 
         # hashing the url
-        md5_hash = hashlib.md5(url.encode("UTF-8")).hexdigest()
+        full_md5_hash = hashlib.md5(url.encode("UTF-8")).hexdigest()
 
-        return md5_hash in self.blacklist
+        # hash the stripped url
+        stripped_md5_has = hashlib.md5(strip_url(url=url).encode("UTF-8")).hexdigest()
+
+        return full_md5_hash in self.blacklist or stripped_md5_has in self.blacklist
