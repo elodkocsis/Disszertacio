@@ -251,7 +251,6 @@ class MessageQueue:
             # increment request counter
             self.request_counter += 1
 
-
     '''
     ######## Static methods #########
     '''
