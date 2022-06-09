@@ -2,12 +2,9 @@ FROM python:3.9
 
 WORKDIR /app
 
-# ADD . /app
-ADD ./requirements.txt /app/requirements.txt
-ADD ./ProxySetup /app/ProxySetup
-ADD ./start_scraper.sh /app/start_scraper.sh
+ADD . /app
 
-RUN apt-get update && apt-get -y upgrade && apt-get install -y tor privoxy curl netcat nano
+RUN apt-get update && apt-get -y upgrade && apt-get install -y tor privoxy curl
 
 RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 
