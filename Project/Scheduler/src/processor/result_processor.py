@@ -80,10 +80,11 @@ def process_scraped_result(received_data: str) -> ProcessingResult:
                 continue
 
             data_for_link = {
-                keys[0]: strip_quotes(string=link),  # url
-                keys[1]: None,  # page title
-                keys[2]: None,  # page content
-                keys[3]: None,  # meta tags
+                keys[0]: strip_quotes(string=link),     # url
+                keys[1]: None,                          # page title
+                keys[2]: None,                          # page content
+                keys[3]: None,                          # meta tags
+                "parent_url": url                       # parent url
             }
 
             # add the new link only if it's not already present in the database

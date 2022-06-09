@@ -136,6 +136,7 @@ def add_page(session: Session, new_page_data: Dict, is_new_url: bool) -> Optiona
                     page_title=new_page_data[keys[1]],
                     page_content=new_page_data[keys[2]],
                     meta_tags=new_page_data[keys[3]],
+                    parent_url=new_page_data["parent_url"] if "parent_url" in new_page_data else None,
                     new_url=is_new_url,
                     date_added=datetime.now())
 
