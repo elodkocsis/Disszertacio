@@ -23,7 +23,7 @@ class Blacklist:
         without a populated blacklist for ethical reason!!!
         """
         try:
-            with open("./src/utils/blacklist_2022-06-03.txt", "r") as file:
+            with open("./src/utils/blacklist_2022-06-09.txt", "r") as file:
                 file_contents = file.read()
         except Exception as e:
             logger.error(f"Couldn't read blacklist file: {e}")
