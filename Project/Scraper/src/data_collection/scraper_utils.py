@@ -113,7 +113,7 @@ def get_tld_with_protocol(url: str) -> Optional[str]:
         return None
 
     # assemble and return tld with protocol
-    return protocol + "://" + fld
+    return protocol + "://" + fld + "/"
 
 
 def url_has_fld(url: str) -> bool:
