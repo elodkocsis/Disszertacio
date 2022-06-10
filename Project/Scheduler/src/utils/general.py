@@ -135,4 +135,3 @@ def strip_url(url: str) -> str:
         return ""
 
     return fld
-
