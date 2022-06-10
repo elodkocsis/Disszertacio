@@ -11,7 +11,7 @@ from src.utils.general import remove_duplicates
 from src.utils.logger import get_logger
 from src.data_collection.scraper_utils import get_tor_proxy_dict, get_request_headers, get_tld_with_protocol, \
     url_has_fld, is_onion_link, remove_line_formatters, remove_multiple_spaces, remove_unusable_links, \
-    remove_html_tags_from_string
+    remove_html_tags_from_string, filter_resource_links, filter_regular_links
 
 # get logger
 logger = get_logger()
@@ -73,14 +73,8 @@ def extract_relevant_content(url: str, parsed_content: BeautifulSoup) -> Optiona
     # we extract only the references present in anchor(a) tags
     extracted_urls = [tag.get('href') for tag in parsed_content.findAll('a')]
 
-    # filter unusable links
-    extracted_urls = remove_unusable_links(list_of_links=extracted_urls)
-
-    # format same domain links
-    extracted_urls = format_urls(url_being_scraped=url, list_of_urls=extracted_urls)
-
-    # remove duplicate urls
-    extracted_urls = remove_duplicates(list_of_strings=extracted_urls)
+    # filter the extracted urls
+    extracted_urls = filter_links(url_being_scraped=url, list_of_urls=extracted_urls)
 
     # extract title
     extracted_title = h2t.handle(str(parsed_content.title).strip())
@@ -106,6 +100,33 @@ def extract_relevant_content(url: str, parsed_content: BeautifulSoup) -> Optiona
         "links": extracted_urls,
         "meta_tags": extracted_meta_tags
     }
+
+
+def filter_links(url_being_scraped: str, list_of_urls: List[str]) -> List[str]:
+    """
+    Function which filters the extracted URLs from a page.
+
+    :param url_being_scraped: The current URL that is being scraped.
+    :param list_of_urls: List of URLs to be filtered.
+    :return: Filtered list of URLs.
+
+    """
+    # filter unusable links
+    list_of_urls = remove_unusable_links(list_of_links=list_of_urls)
+
+    # format same domain links
+    list_of_urls = format_urls(url_being_scraped=url_being_scraped, list_of_urls=list_of_urls)
+
+    # filter links that point to resources that are not html or txt
+    list_of_urls = filter_resource_links(list_of_links=list_of_urls)
+
+    # remove duplicate urls
+    list_of_urls = remove_duplicates(list_of_strings=list_of_urls)
+
+    # remove non-onion links
+    list_of_urls = filter_regular_links(list_of_links=list_of_urls)
+
+    return list_of_urls
 
 
 def format_urls(url_being_scraped: str, list_of_urls: List[str]) -> Optional[List[str]]:

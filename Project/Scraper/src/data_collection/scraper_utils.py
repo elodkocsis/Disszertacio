@@ -166,6 +166,69 @@ def remove_unusable_links(list_of_links: List[str]) -> List[str]:
     return [link for link in list_of_links if link not in invalid_link_values]
 
 
+def filter_resource_links(list_of_links: List[str]) -> List[str]:
+    """
+    Function which removes links from a list that are potentially pointing to non-HTML or -txt resources.
+
+    :param list_of_links: List of links to be filtered.
+    :return: List of filtered links.
+
+    """
+    # we are using a set because of O(1), not that it really matters for 2 elements
+    allowed_extensions = {"html", "txt"}
+
+    filtered_links = []
+
+    for link in list_of_links:
+        # split link along the TLD
+        parts = link.split(".onion")
+
+        # take the part after the TLD
+        last_part = parts[-1]
+
+        # remove slashes
+        last_part = last_part.replace("/", "")
+
+        # if there is a list of parameters, we will allow it
+        if "?" in last_part:
+            filtered_links.append(link)
+            continue
+
+        # split the last part based on the dots in a potential file extension
+        parts = last_part.split(".")
+
+        if len(parts) > 1:
+            # get the potential extension
+            potential_extension = parts[-1]
+
+            # check if there is at least something
+            if len(potential_extension) > 0:
+                # we only add the url to the filtered list if the extension is present in the allowed set
+                if potential_extension in allowed_extensions:
+                    filtered_links.append(link)
+
+            else:
+                # if no extension was found, the link is probably good
+                filtered_links.append(link)
+        else:
+            # if there are no dots, the link is good
+            filtered_links.append(link)
+
+    return filtered_links
+
+
+def filter_regular_links(list_of_links: List[str]) -> List[str]:
+    """
+    Function which filters out all regular links from a list.
+
+    :param list_of_links: List of links to be filtered.
+    :return: List of filtered links.
+
+    """
+
+    return [link for link in list_of_links if is_onion_link(link=link)]
+
+
 def remove_html_tags_from_string(string: str) -> str:
     """
     Function which removes HTML tags from a string.
