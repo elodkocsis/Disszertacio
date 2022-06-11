@@ -6,6 +6,8 @@ from src.mq.message_queue import MessageQueue
 from src.utils.signal_handler import get_signal_handler_method
 from src.utils.general import read_config_file, get_config_file_location
 
+# setting the recursion limit(bugfix for BeautifulSoup when dealing with large pages)
+sys.setrecursionlimit(25000)
 
 if __name__ == '__main__':
     # get the parameters for connecting to the message queue
