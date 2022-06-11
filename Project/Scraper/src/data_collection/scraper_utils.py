@@ -161,7 +161,7 @@ def remove_unusable_links(list_of_links: List[str]) -> List[str]:
 
     """
     # we are using a set as lookup is O(1)
-    invalid_link_values = {"", "#", None}
+    invalid_link_values = {"", "#", "./", "/", ".", None}
 
     return [link for link in list_of_links if link not in invalid_link_values]
 
@@ -240,3 +240,24 @@ def remove_html_tags_from_string(string: str) -> str:
 
     clean_text = re.sub(r"<(?:\"[^\"]*\"['\"]*|'[^']*'['\"]*|[^'\">])+>", '', string)
     return clean_text
+
+
+def merge_pathlike_link_to_base_url(base_url: str, link: str) -> str:
+    """
+    Function which merges a base url with a path-like link.
+
+    Example:    base: 'http://domain.top_level/page1/page2'; link: '../some/other/page'
+                result: 'http://domain.top_level/page1/some/other/page'
+
+    :param base_url: Base URL.
+    :param link: Path-like link.
+    :return: Merged URL.
+
+    """
+
+    merged_url = "/".join(base_url[:-1].split("/")[:-link.count("../")]) + "/" + link.replace("../", "")
+
+    if merged_url[-1] != "/":
+        merged_url += "/"
+
+    return merged_url

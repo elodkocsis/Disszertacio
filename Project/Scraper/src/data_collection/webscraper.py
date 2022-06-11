@@ -11,7 +11,7 @@ from src.utils.general import remove_duplicates
 from src.utils.logger import get_logger
 from src.data_collection.scraper_utils import get_tor_proxy_dict, get_request_headers, get_tld_with_protocol, \
     url_has_fld, is_onion_link, remove_line_formatters, remove_multiple_spaces, remove_unusable_links, \
-    remove_html_tags_from_string, filter_resource_links, filter_regular_links
+    remove_html_tags_from_string, filter_resource_links, filter_regular_links, merge_pathlike_link_to_base_url
 
 # get logger
 logger = get_logger()
@@ -76,17 +76,23 @@ def extract_relevant_content(url: str, parsed_content: BeautifulSoup) -> Optiona
     # filter the extracted urls
     extracted_urls = filter_links(url_being_scraped=url, list_of_urls=extracted_urls)
 
-    # extract title
-    extracted_title = h2t.handle(str(parsed_content.title).strip())
+    if parsed_content.title is not None:
+        # extract title
+        extracted_title = h2t.handle(str(parsed_content.title).strip())
 
-    # format title
-    formatted_title = format_text(string=extracted_title)
+        # format title
+        formatted_title = format_text(string=extracted_title)
+    else:
+        formatted_title = None
 
-    # extract body text
-    extracted_body = h2t.handle(str(parsed_content.body).strip())
+    if parsed_content.body is not None:
+        # extract body text
+        extracted_body = h2t.handle(str(parsed_content.body).strip())
+    else:
+        extracted_body = None
 
     # format text data
-    extracted_text = format_content_text(title=extracted_title, body=extracted_body)
+    extracted_text = format_content_text(title=formatted_title, body=extracted_body)
 
     # extract the meta tags
     # we are going for name here
@@ -149,6 +155,20 @@ def format_urls(url_being_scraped: str, list_of_urls: List[str]) -> Optional[Lis
     # initialize the new list
     formatted_urls = []
     for url in list_of_urls:
+        # double check if url has any data
+        if len(url) == 0:
+            continue
+
+        # handle situation where ref has path-like structure
+        if "../" in url:
+            merged_url = merge_pathlike_link_to_base_url(base_url=url_being_scraped, link=url)
+            formatted_urls.append(merged_url)
+            continue
+
+        # check if url starts with # (meaning that it is only pointing to a section within the current page)
+        if url[0] == "#":
+            continue
+
         # remove section part
         parts = url.split("#")
         url = parts[0]
@@ -172,7 +192,7 @@ def format_urls(url_being_scraped: str, list_of_urls: List[str]) -> Optional[Lis
     return formatted_urls
 
 
-def format_content_text(title: str, body: str) -> str:
+def format_content_text(title: Optional[str], body: Optional[str]) -> Optional[str]:
     """
     Function which formats the title and body text of a webpage.
 
@@ -182,23 +202,35 @@ def format_content_text(title: str, body: str) -> str:
 
     """
 
-    # remove line formatters from title
-    title = remove_line_formatters(string=title)
+    if title is not None:
+        # remove line formatters from title
+        title = remove_line_formatters(string=title)
 
-    # remove multiple spaces from title
-    title = remove_multiple_spaces(string=title)
+        # remove multiple spaces from title
+        title = remove_multiple_spaces(string=title)
 
-    # remove line formatters from body text
-    body = remove_line_formatters(string=body)
+    if body is not None:
+        # remove line formatters from body text
+        body = remove_line_formatters(string=body)
 
-    # remove multiple spaces from body text
-    body = remove_multiple_spaces(string=body)
+        # remove multiple spaces from body text
+        body = remove_multiple_spaces(string=body)
 
-    # remove HTML tags from body text
-    body = remove_html_tags_from_string(string=body)
+        # remove HTML tags from body text
+        body = remove_html_tags_from_string(string=body)
 
     # combine the title with the body text and return result
-    return title + ". " + body
+    formatted_text = ""
+    if title is not None:
+        formatted_text += title + ". "
+
+    if body is not None:
+        formatted_text += body
+
+    if len(formatted_text) > 0:
+        return formatted_text
+
+    return None
 
 
 def format_text(string: str) -> str:

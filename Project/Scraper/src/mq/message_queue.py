@@ -1,6 +1,7 @@
 import json
 import sys
 import time
+import traceback
 from typing import Dict, Optional, List, Callable, Union
 
 from pika import BlockingConnection, ConnectionParameters, BasicProperties
@@ -113,7 +114,7 @@ class MessageQueue:
                 self.channel.start_consuming()
             except Exception as e:
                 # if the MQ goes down, we will try to reconnect to the MQ
-                logger.warning(f"Exception when trying to start consuming messages: {e}")
+                logger.warning(f"Exception when trying to start consuming messages: {e}\n{traceback.print_exc()}")
                 logger.warning("Retrying in 10 seconds...")
                 time.sleep(10)
                 was_consuming_before = True
@@ -189,6 +190,7 @@ class MessageQueue:
                     logger.info(f"URL '{url}' processed.")
                 else:
                     logger.warning(f"Couldn't send back result for url: '{url}'!")
+                    ch.basic_nack(delivery_tag=method.delivery_tag)
 
                 # count request and increment the request counter
                 self._get_new_tor_ident()
