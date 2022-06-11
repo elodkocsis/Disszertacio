@@ -175,10 +175,10 @@ class MessageQueue:
 
                 if processing_result == ProcessingResult.SAVE_FAILED:
                     # if we cannot save it to the database, is most likely because the database is unreachable
-                    # in this case we don't want to nack it, so the data will be rescheduled for processing and
-                    # added to the database later
+                    # or the url is already present in the db; keep in mind we don't really have any synchronization
+                    # between processor apps
                     logger.warning("Couldn't save processed data into the database!")
-                    ch.basic_nack(delivery_tag=method.delivery_tag)
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
 
         return callback
 
