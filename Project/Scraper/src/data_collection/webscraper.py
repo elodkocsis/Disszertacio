@@ -161,7 +161,11 @@ def format_urls(url_being_scraped: str, list_of_urls: List[str]) -> Optional[Lis
         # if url doesn't contain FLD
         if not url_has_fld(url=url):
             # add FLD to it
-            url = current_url + url
+            # if the url starts with a backslash, slice the string
+            if url[0] == "/":
+                url = current_url + url[1:]
+            else:
+                url = current_url + url
 
         formatted_urls.append(url)
 
