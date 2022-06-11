@@ -266,7 +266,9 @@ class MessageQueue:
 
         """
         try:
-            return BlockingConnection(ConnectionParameters(host=host, port=port))
+            return BlockingConnection(ConnectionParameters(host=host,
+                                                           port=port,
+                                                           heartbeat=600))
         except Exception as e:
             logger.warning(f"Error creating connection object to MQ: {e}")
             return None
