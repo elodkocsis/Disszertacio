@@ -12,15 +12,22 @@ from src.utils.logger import get_logger
 logger = get_logger()
 
 
-def get_page_urls_to_scrape(session: Session, access_day_difference: int) -> Optional[List[str]]:
+def get_page_urls_to_scrape(session: Session, access_day_difference: int, number_of_urls: int) -> Optional[List[str]]:
     """
     Function which returns the list of urls for which scraping has to be done.
 
-    :param session: Session object for database
+    :param session: Session object for database.
     :param access_day_difference: How long ago should have been updated to be reconsidered.
+    :param number_of_urls: Number of URLs to be returned.
     :return: List of URL strings for the pages that need to be scraped.
 
     """
+    # check the number
+    # this option was added because in test runs after the 4th scheduling there would have been ~500k URLs which is
+    # quite a lot for my computer to handle in a timely manner
+    if number_of_urls < 1:
+        raise Exception("'number_of_urls' cannot be lower than 1")
+
     current_time = datetime.now()
     date_to_check_against = current_time - timedelta(days=access_day_difference)
 
@@ -48,6 +55,10 @@ def get_page_urls_to_scrape(session: Session, access_day_difference: int) -> Opt
 
     # shuffle elements in the list
     shuffle(list_of_pages)
+
+    # we enforce the limit here instead of limiting the query because after the designated day diff period we would
+    # only receive already scraped URLs, and we couldn't schedule new URLs
+    list_of_pages = list_of_pages[:number_of_urls]
 
     logger.info(f"Number of URLs scheduled for this run: {len(list_of_pages)}")
 

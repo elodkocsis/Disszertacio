@@ -6,7 +6,7 @@ from src.db.db_operations import get_page_urls_to_scrape
 from src.mq.MessageQueue import MessageQueue
 from src.utils.Sleeper import Sleeper
 from src.utils.signal_handler import get_signal_handler_method
-from src.utils.general import read_config_file, get_config_file_location
+from src.utils.general import read_config_file, get_config_file_location, get_number_of_urls
 
 if __name__ == '__main__':
 
@@ -28,7 +28,9 @@ if __name__ == '__main__':
     with session_scope() as session:
 
         # get all the urls that need to be scraped on this run
-        if(list_of_urls_to_scrape := get_page_urls_to_scrape(session=session, access_day_difference=1)) is not None:
+        if(list_of_urls_to_scrape := get_page_urls_to_scrape(session=session,
+                                                             access_day_difference=1,
+                                                             number_of_urls=get_number_of_urls(8000))) is not None:
             # send each url on their way through the MQ
             for url in list_of_urls_to_scrape:
                 # if we cannot send a message, we stop the whole process -> most likely MQ is down

@@ -1,5 +1,6 @@
+import os
 import sys
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 
@@ -135,3 +136,37 @@ def strip_url(url: str) -> str:
         return ""
 
     return fld
+
+
+def get_environment_variable(variable: str, default_value: Any) -> Any:
+    """
+    Function which returns an environment variable.
+
+    :param variable: Name of the environment variable.
+    :param default_value: The default value if the environment variable doesn't exist.
+    :return: Value of the environment variable.
+
+    """
+
+    val = os.environ.get(variable, default_value)
+
+    # check the situation where the variable is declared, but it has no value
+    if len(val) == 0:
+        return default_value
+
+    return val
+
+
+def get_number_of_urls(default_value: int = -1) -> int:
+    """
+    Function which reads the number of URLs to be scraped from the environment variables.
+
+    :param default_value: The default value if the environment variable is not set.
+    :return: Number of URLs to be scheduled.
+    """
+
+    try:
+        return int(get_environment_variable(variable="NUM_OF_URLS", default_value=default_value))
+    except Exception as e:
+        logger.warning(f"Couldn't retrieve the number of URLs to be scheduled from the environment variables: {e}")
+        return default_value
