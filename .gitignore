@@ -134,3 +134,4 @@ dmypy.json
 # Custom directories for this project
 Project/DB/data
 Project/MQ
+.anvil-data/
