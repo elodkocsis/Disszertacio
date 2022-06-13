@@ -1,0 +1,30 @@
+properties:
+- {name: query, type: string, default_value: None, default_binding_prop: true, description: The text typed into the search box.}
+is_package: true
+events:
+- name: search_event
+  default_event: true
+  parameters:
+  - {name: query, description: The text value of the search box.}
+  description: Event fired when the user clicks the search button or hits enter in the search box.
+custom_component: true
+components:
+- type: TextBox
+  properties: {role: search_box, align: left, hide_text: false, tooltip: '', placeholder: Type here to search .onion links,
+    border: '', enabled: true, foreground: '', visible: true, text: '', font_size: null,
+    font: '', spacing_above: small, type: text, spacing_below: small, italic: false,
+    background: '', bold: false, underline: false}
+  name: search_text_box
+  layout_properties: {grid_position: 'KFPUYZ,EMDCNP'}
+  event_bindings: {pressed_enter: search_text_box_pressed_enter}
+- type: Button
+  properties: {role: raised, align: center, tooltip: '', border: '', enabled: true,
+    foreground: '', visible: true, text: Search, font_size: null, font: '', spacing_above: small,
+    icon_align: left, spacing_below: small, italic: false, background: 'theme:Gray
+      300', bold: true, underline: false, icon: 'data:image/png;base64,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'}
+  name: search_button
+  layout_properties: {grid_position: 'KFPUYZ,EMJRBQ'}
+  event_bindings: {click: search_button_click}
+container:
+  type: ColumnPanel
+  properties: {col_widths: '{"EMDCNP":55,"EMJRBQ":15}'}

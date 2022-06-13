@@ -1,0 +1,16 @@
+dependencies: []
+services:
+- source: /runtime/services/tables.yml
+  client_config: {}
+  server_config: {}
+startup: {type: form, module: HomePage}
+package_name: DrkSrch
+allow_embedding: false
+name: DrkSrch
+runtime_options: {version: 2, server_version: python3-sandbox, client_version: '3',
+  server_spec: null}
+metadata: {title: DrkSrch, logo_img: 'asset:logo_icon.png'}
+startup_form: null
+native_deps: {head_html: ''}
+db_schema: {}
+renamed: true
