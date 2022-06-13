@@ -48,6 +48,8 @@ services:
     image: 'scheduler'
     restart: always
     container_name: 'scheduler'
+    environment:
+      - NUM_OF_URLS=8000
     networks:
         - crawler
     depends_on:
@@ -62,7 +64,6 @@ services:
       dockerfile: Dockerfile_processor
     image: 'processor'
     restart: unless-stopped
-    container_name: 'processor'
     networks:
         - crawler
     depends_on:
@@ -70,6 +71,9 @@ services:
           condition: service_healthy
         db:
           condition: service_healthy
+    deploy:
+      mode: replicated                  # in order for this to work, use `--compatibility` flag when using docker-compose
+      replicas: 5
 
   scraper:
     build:
@@ -84,7 +88,44 @@ services:
           condition: service_healthy
     deploy:
       mode: replicated                  # in order for this to work, use `--compatibility` flag when using docker-compose
-      replicas: 5
+      replicas: 20
+
+  tor:
+    image: goldy/tor-hidden-service:latest
+    restart: unless-stopped
+    container_name: 'hidden-service'
+    networks:
+      - hidden_services
+    environment:
+        WEBAPP_TOR_SERVICE_HOSTS: '80:webapp:80'
+        WEBAPP_TOR_SERVICE_VERSION: '3'
+        WEBAPP_TOR_SERVICE_KEY: |
+            <your service key for custom onion domain. if removed, a random one will be generated>
+
+        TOR_ENABLE_VANGUARDS: 'true'
+        VANGUARDS_EXTRA_OPTIONS: |
+          [Global]
+          enable_cbtverify = True
+
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 'webapp'
+    restart: unless-stopped
+    container_name: 'webapp'
+    ports:  # TODO: remove port exposure when deployings
+      - '80:80'
+    environment:
+      - PORT=80
+      - KEY=server_HMNV5XCTSHFNQS3JRGJYC333-6ES3MVIULUSBJRZV
+    networks:
+        - hidden_services
+        - engine
+    depends_on:
+        tor:
+          condition: service_healthy
+
 
 networks:
     crawler:
@@ -92,6 +133,9 @@ networks:
       driver: bridge
     engine:
       name: engine-network
+      driver: bridge
+    hidden_services:
+      name: hidden_services
       driver: bridge   
 
 volumes:
