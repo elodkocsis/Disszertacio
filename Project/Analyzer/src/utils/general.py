@@ -101,6 +101,35 @@ def get_environment_variable(variable: str, default_value: Any) -> Any:
     return val
 
 
-# TODO: implement function
-def remove_file(file_location: str) -> bool:
-    pass
+def remove_file(filename: str) -> bool:
+    """
+    Function which removes a file if it exists.
+
+    :param filename: Path to the file.
+    :return: True if the file was removed, otherwise False
+    """
+    if os.path.exists(filename):
+        try:
+            os.remove(filename)
+        except OSError:
+            return False
+        return True
+    return False
+
+
+def create_folder(relative_path: str):
+    """
+    Function which creates a folder.
+
+    :param relative_path: The relative path to the folder.
+    :return: Returns the status of the operation.
+    """
+    try:
+        os.makedirs(relative_path, exist_ok=True)
+    except OSError as e:
+        logger.error(f"Exception when trying to create folder '{relative_path}': {e}")
+        # return false if folder cannot be created/exists
+        return False
+
+    # return true if folder was created
+    return True

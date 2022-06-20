@@ -1,8 +1,11 @@
 import gc
 import time
 import threading
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 
+from top2vec import Top2Vec
+
+from src.topic_modelling.model_management_utils import train_model, save_model_to_disc, run_query
 from src.utils.enums import ModelStatus
 from src.utils.logger import get_logger
 
@@ -10,27 +13,13 @@ from src.utils.logger import get_logger
 logger = get_logger()
 
 
-# TODO: remove this
-class Model:
-
-    def __init__(self, label, version):
-        self.label = label
-        self.version = version
-
-    def get_label(self) -> Dict:
-        time.sleep(5)
-        return {"data": self.label + str(self.version)}
-
-    def __str__(self):
-        return f"<Model: label={self.label}; version={self.version}>"
-
-
 # TODO: add method to load model from disc
 class ModelManager(object):
     __instance = None
     # TODO: switch this back to 1 day
-    __MODEL_TRAINING_TIMER_WAIT_TIME = 60  # 86400  # seconds -> this is 1 day, 24 hours
-    __MODEL_LOCATION_AND_NAME = "./model.t2v"
+    __MODEL_TRAINING_TIMER_WAIT_TIME = 1200  # 86400  # seconds -> this is 1 day, 24 hours
+    __MODEL_LOCATION = "Top2VecModel"
+    __MODEL_FILE_NAME = "model.t2v"
 
     def __new__(cls, *args, **kwargs):
         if ModelManager.__instance is None:
@@ -47,7 +36,7 @@ class ModelManager(object):
 
     def __init__(self):
         self.model_training_job_timer: Optional[threading.Timer] = None
-        self.model: Optional[Model] = None
+        self.model: Optional[Top2Vec] = None
         self.client_lock = threading.Lock()
         self.counter_lock = threading.Lock()
         self.client_counter = 0
@@ -64,7 +53,15 @@ class ModelManager(object):
         # since the thread starts a new timer, we delete it after the thread has completed
         self.delete_model_training_timer()
 
-    def get_value(self) -> Union[ModelStatus, Dict]:
+    def get_pages(self, query: str, num_of_pages: int) -> Optional[Union[ModelStatus, List[Dict]]]:
+        """
+        Function which returns a list of dict objects for containing the pages for the passed query.
+
+        :param query: The query based on which the page data will be returned.
+        :param num_of_pages: Number of results to be returned.
+        :return: Ordered list of dictionaries containing the data for the pages.
+
+        """
         while True:
             # although it's not necessary to lock a simple read operation, because of the GIL, I really want to
             # make sure that no client request with "Flash" or "Quicksilver" level of speed will get through once the
@@ -88,34 +85,39 @@ class ModelManager(object):
 
         # we are not locking the actual model usages as that will create a bottleneck here, and we defeat the
         # purpose of having a somewhat parallel execution for different client requests
-        # besides, addition and subtraction procedures are done much faster than the model usage itself
-        result = self.model.get_label()
+        # besides, addition and subtraction procedures are done much faster than the query procedure itself
+        result = run_query(top2vec_model=self.model, query=query, number_of_pages=num_of_pages)
 
         with self.counter_lock:
             self.client_counter -= 1
 
         return result
 
-    def set_model(self, new_model: Model):
-        print(f"New model: {new_model}")
+    def set_model(self, new_model: Top2Vec):
+        """
+        Method which sets a new Top2Vec model and saves it to disc.
+
+        :param new_model: New Top2Vec model to be set and saved to disc.
+
+        """
+        # overwrite model in memory
         self.model = new_model
+
+        # try saving the model to disc
+        save_model_to_disc(model=new_model, path=self.__MODEL_LOCATION, file_name=self.__MODEL_FILE_NAME)
 
     '''
     ######## Static methods #########
     '''
 
     @staticmethod
-    def train_new_model(model_manager_instance) -> Model:
-        time.sleep(20)
-        if model_manager_instance.model is not None:
-            current_version = model_manager_instance.model.version
-        else:
-            current_version = 0
-
-        return Model(label="MyCustomModel", version=current_version + 1)
-
-    @staticmethod
     def start_model_training_thread(manager_instance):
+        """
+        Method which starts the thread responsible for training a new Top2Vec model.
+
+        :param manager_instance: ModelManager instance.
+
+        """
         # we are getting the model status
         with manager_instance.client_lock:
             model_status = manager_instance.model_status
@@ -141,45 +143,55 @@ class ModelManager(object):
 
     @staticmethod
     def model_trainer_job(manager_instance):
+        """
+        Method which executes a Top2Vec model training job.
+
+        :param manager_instance: ModelManager instance.
+
+        """
         # we train the new model
         logger.info("Training new model...")
-        new_model = ModelManager.train_new_model(model_manager_instance=manager_instance)
-        logger.info("New model trained.")
 
-        with manager_instance.client_lock:
-            manager_instance.model_status = ModelStatus.UPDATING
+        # if the model has been trained successfully, we move on to switching it out with the existing one
+        # otherwise we restart the timers
+        # this is enough if there is already a model trained, but can cause issues if this is a "cold start"
+        if (new_model := train_model()) is not None:
+            logger.info("New model trained.")
 
-        logger.info(f"Model status set to '{manager_instance.model_status}'")
+            with manager_instance.client_lock:
+                manager_instance.model_status = ModelStatus.UPDATING
 
-        logger.info("Waiting for clients to finish using the model...")
+            logger.info(f"Model status set to '{manager_instance.model_status}'")
 
-        # we are checking the client counter and wait until all the clients have received a result from
-        # the previous model;
-        while True:
-            # trying to acquire the counter lock
-            is_locked = manager_instance.counter_lock.acquire(blocking=False)
-            if not is_locked:
-                continue
+            logger.info("Waiting for clients to finish using the model...")
 
-            # getting the counter and releasing the lock
-            counter = manager_instance.client_counter
-            manager_instance.counter_lock.release()
+            # we are checking the client counter and wait until all the clients have received a result from
+            # the previous model;
+            while True:
+                # trying to acquire the counter lock
+                is_locked = manager_instance.counter_lock.acquire(blocking=False)
+                if not is_locked:
+                    continue
 
-            # if there are no more clients using the model, we move on
-            if counter == 0:
-                break
-            else:
-                # otherwise, we are waiting a bit and rechecking the count
-                time.sleep(0.05)
+                # getting the counter and releasing the lock
+                counter = manager_instance.client_counter
+                manager_instance.counter_lock.release()
 
-        logger.info("Setting the new model...")
-        manager_instance.set_model(new_model=new_model)
-        logger.info("New model set.")
+                # if there are no more clients using the model, we move on
+                if counter == 0:
+                    break
+                else:
+                    # otherwise, we are waiting a bit and rechecking the count
+                    time.sleep(0.05)
 
-        with manager_instance.client_lock:
-            manager_instance.model_status = ModelStatus.READY
+            logger.info("Setting the new model...")
+            manager_instance.set_model(new_model=new_model)
+            logger.info("New model set.")
 
-        logger.info(f"Model status set to '{manager_instance.model_status}'")
+            with manager_instance.client_lock:
+                manager_instance.model_status = ModelStatus.READY
+
+            logger.info(f"Model status set to '{manager_instance.model_status}'")
 
         # delete previous timer
         manager_instance.delete_model_training_timer()

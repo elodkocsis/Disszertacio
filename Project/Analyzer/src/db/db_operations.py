@@ -29,7 +29,7 @@ def get_trainable_pages(session: Session) -> Optional[List[Page]]:
                 Page.page_title is not None,
                 func.length(Page.page_title) > 0
             )
-        ).limit(10).all()  # TODO: remove limit
+        ).all()
     except Exception as e:
         logger.warning(f"Exception when querying new page urls: {e}")
         return None
