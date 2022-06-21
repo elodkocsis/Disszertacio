@@ -1,9 +1,12 @@
 from typing import Optional, List, Dict
 
+from sqlalchemy.orm import Session
 from top2vec import Top2Vec
 
+from src.db.PageDBModel import Page
 from src.db.database import session_scope
-from src.db.db_operations import get_trainable_pages
+from src.db.db_operations import get_trainable_pages, search_pages_by_urls, sort_pages_list_based_on_url_list, \
+    map_list_of_pages_to_dict
 from src.utils.general import create_folder, file_exists
 from src.utils.logger import get_logger
 
@@ -72,8 +75,19 @@ def run_query(top2vec_model: Top2Vec, query: str, number_of_pages: int) -> Optio
 
     """
     # getting the urls
-    # TODO: implement this
-    pass
+    _, urls = top2vec_model.query_documents(query=query, num_docs=number_of_pages, use_index=True)
+
+    # get the pages for the urls from the database
+    with session_scope() as session:
+        if (pages := search_pages_by_urls(session=session, list_of_urls=urls)) is None:
+            # this means that we most likely lost connection to the database
+            return None
+
+    # sort the pages based on the order of their URLs returned by the model
+    sorted_pages_list = sort_pages_list_based_on_url_list(ordered_url_list=list(urls), page_list=pages)
+
+    # map the list of pages to a list of dicts that is expected by the front-end
+    return map_list_of_pages_to_dict(list_of_pages=sorted_pages_list)
 
 
 def save_model_to_disc(model: Top2Vec, path: str, file_name: str) -> bool:

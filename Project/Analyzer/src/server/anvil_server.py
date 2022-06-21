@@ -1,26 +1,34 @@
+import threading
+import time
 from typing import List, Dict, Union, Optional
 
 import anvil
 
 from src.topic_modelling.ModelManager import ModelManager
-
-# call the model manager to kickstart the whole load process
-# we need to take the instance out because if we call the class in an anvil callable, it will create
-# a new instance for each callable thread and that's not too good
 from src.utils.enums import ModelStatus
+from src.utils.logger import get_logger
 
-model_manager = ModelManager()
+logger = get_logger()
+
+# call the model manager to kickstart the whole load process and create a single instance across the application
+ModelManager()
+
+# create an event
+should_stop_event = threading.Event()
 
 
 @anvil.server.callable
 def get_pages(query: str, num: int) -> Optional[Union[ModelStatus, List[Dict]]]:
     """
-    Function which
-    :param query:
-    :param num:
-    :return:
+    Function which returns the results for a given query.
+
+    :param query: Query string for which we want to get the results.
+    :param num: Number of results to be returned.
+    :return: List of dictionaries containing the data for the pages or a model status if the model is not set up yet.
+
     """
-    return model_manager.get_pages(query=query, num_of_pages=num)
+
+    return ModelManager().get_pages(query=query, num_of_pages=num)
 
 
 @anvil.server.callable
@@ -44,4 +52,8 @@ def start_server(uplink_url: str, key: str):
 
     anvil.server.connect(url=uplink_url, key=key)
 
-    anvil.server.wait_forever()
+    while True:
+        if should_stop_event.isSet():
+            break
+
+        time.sleep(0.5)

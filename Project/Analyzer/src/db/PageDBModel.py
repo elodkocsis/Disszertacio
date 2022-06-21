@@ -19,3 +19,33 @@ class Page(Base):
     def __repr__(self):
         return f"<Page: url: {self.url}; date_added: {self.date_added}; " \
                f"is_new: {self.new_url}; date_accessed: {self.date_added}>"
+
+    def get_page_title(self) -> str:
+        """
+        Function which returns the page title. If the page has no title, the URL will be returned instead.
+
+        :return: Page title or URL.
+
+        """
+
+        title = str(self.page_title)
+
+        return title if self.page_title is not None and len(title) > 0 else self.url
+
+    def get_page_description(self) -> str:
+        """
+        Function which returns the description of a page.
+
+        :return: Page description.
+        """
+
+        # if the meta_tags property is not a list, we return an empty string
+        if type(self.meta_tags) != list:
+            return ""
+
+        for tag in self.meta_tags:
+            if (key := tag.get("key", None)) is not None and key == "description":
+                return tag.get("value", "")
+
+        # if we can't find a description tag, return an empty string
+        return ""

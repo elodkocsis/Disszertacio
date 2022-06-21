@@ -5,8 +5,9 @@ from typing import Dict, Optional, Union, List
 
 from top2vec import Top2Vec
 
-from src.topic_modelling.model_management_utils import train_model, save_model_to_disc, run_query, index_top2vec_model, \
-    load_model_from_disc
+from src.topic_modelling.Singleton import Singleton
+from src.topic_modelling.model_management_utils import train_model, save_model_to_disc, run_query, \
+    index_top2vec_model, load_model_from_disc
 from src.utils.enums import ModelStatus
 from src.utils.logger import get_logger
 
@@ -14,37 +15,26 @@ from src.utils.logger import get_logger
 logger = get_logger()
 
 
-# TODO: add method to load model from disc
-class ModelManager(object):
+class ModelManager(metaclass=Singleton):
     __instance = None
-    # TODO: switch this back to 1 day
-    __MODEL_TRAINING_TIMER_WAIT_TIME = 1200  # 86400  # seconds -> this is 1 day, 24 hours
+    __MODEL_TRAINING_TIMER_WAIT_TIME = 86400  # seconds -> this is 1 day, 24 hours
     __MODEL_LOCATION = "Top2VecModel"
     __MODEL_FILE_NAME = "model.t2v"
 
-    def __new__(cls, *args, **kwargs):
-        if ModelManager.__instance is None:
-            # creating the object
-            ModelManager.__instance = object.__new__(cls)
-
-            # initializing the instance
-            ModelManager.__instance.__init__()
-
-            # try loading an existing model
-            ModelManager.__instance.load_model()
-
-            # starting the trainer thread
-            ModelManager.start_model_training_thread(manager_instance=ModelManager.__instance)
-
-        return ModelManager.__instance
-
     def __init__(self):
+        self.model_training_thread: Optional[threading.Thread] = None
         self.model_training_job_timer: Optional[threading.Timer] = None
         self.model: Optional[Top2Vec] = None
         self.client_lock = threading.Lock()
         self.counter_lock = threading.Lock()
         self.client_counter = 0
         self.model_status = ModelStatus.SETTING_UP
+
+        # try loading an existing model
+        self.load_model()
+
+        # starting the trainer thread
+        self.start_model_training_thread(manager_instance=self)
 
     def __del__(self):
         if self.model_training_thread is not None and self.model_training_thread.isAlive():
@@ -56,15 +46,28 @@ class ModelManager(object):
         # since the thread starts a new timer, we delete it after the thread has completed
         self.delete_model_training_timer()
 
-    def get_pages(self, query: str, num_of_pages: int) -> Optional[Union[ModelStatus, List[Dict]]]:
+    def get_pages(self, query: str, num_of_pages: int) -> Union[ModelStatus, List[Dict]]:
         """
         Function which returns a list of dict objects for containing the pages for the passed query.
 
         :param query: The query based on which the page data will be returned.
-        :param num_of_pages: Number of results to be returned.
+        :param num_of_pages: Number of results to be returned. If the value is less than 1, the value will be set to 1,
+                            if the value is larger than 1000, the value will be set to 1000.
         :return: Ordered list of dictionaries containing the data for the pages.
 
         """
+
+        logger.info(f"Request for query: {query} and num of pages: {num_of_pages}")
+
+        # check the number of pages to not be less than 1
+        if num_of_pages < 1:
+            num_of_pages = 1
+
+        # check the number of pages to not be more than 1000
+        # this way we can compensate a bit for speed
+        if num_of_pages > 1000:
+            num_of_pages = 1000
+
         while True:
             # although it's not necessary to lock a simple read operation, because of the GIL, I really want to
             # make sure that no client request with "Flash" or "Quicksilver" level of speed will get through once the
@@ -81,6 +84,7 @@ class ModelManager(object):
 
         if model_status != ModelStatus.READY:
             # this will be ModelStatus.SETTING_UP
+            logger.warning("Model manages is still in SETTING_UP mode!")
             return model_status
 
         with self.counter_lock:

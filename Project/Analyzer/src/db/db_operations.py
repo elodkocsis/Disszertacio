@@ -1,4 +1,4 @@
-from typing import List, Optional, Set
+from typing import List, Optional
 
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
@@ -37,7 +37,7 @@ def get_trainable_pages(session: Session) -> Optional[List[Page]]:
     return pages
 
 
-def search_pages_by_urls(session: Session, list_of_urls: Set[str]) -> Optional[List[Page]]:
+def search_pages_by_urls(session: Session, list_of_urls: List[str]) -> Optional[List[Page]]:
     """
     Function which returns the Page objects from the database for the URLs that have been provided.
 
@@ -73,3 +73,19 @@ def sort_pages_list_based_on_url_list(ordered_url_list: List[str], page_list: Li
     # ordered_url_dict = {url: index for index, url in enumerate(ordered_url_list)}
 
     return sorted(page_list, key=lambda x: ordered_url_list.index(x.url))
+
+
+def map_list_of_pages_to_dict(list_of_pages: List[Page]) -> List[dict]:
+    """
+    Function which maps a list of Page objects to a list of dictionaries that is going to be used by the front-end.
+
+    :param list_of_pages: List of Page objects.
+    :return: List of dictionaries containing the data of the Page objects for the front-end.
+
+    """
+
+    return [{
+        "url": page.url,
+        "title": page.get_page_title(),
+        "description": page.get_page_description()
+    } for page in list_of_pages]
