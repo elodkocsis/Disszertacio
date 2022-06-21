@@ -5,7 +5,8 @@ from typing import Dict, Optional, Union, List
 
 from top2vec import Top2Vec
 
-from src.topic_modelling.model_management_utils import train_model, save_model_to_disc, run_query
+from src.topic_modelling.model_management_utils import train_model, save_model_to_disc, run_query, index_top2vec_model, \
+    load_model_from_disc
 from src.utils.enums import ModelStatus
 from src.utils.logger import get_logger
 
@@ -29,6 +30,9 @@ class ModelManager(object):
             # initializing the instance
             ModelManager.__instance.__init__()
 
+            # try loading an existing model
+            ModelManager.__instance.load_model()
+
             # starting the trainer thread
             ModelManager.start_model_training_thread(manager_instance=ModelManager.__instance)
 
@@ -40,7 +44,6 @@ class ModelManager(object):
         self.client_lock = threading.Lock()
         self.counter_lock = threading.Lock()
         self.client_counter = 0
-        # TODO: replace this with the appropriate state, if there is any model present on the disc or not
         self.model_status = ModelStatus.SETTING_UP
 
     def __del__(self):
@@ -105,6 +108,29 @@ class ModelManager(object):
 
         # try saving the model to disc
         save_model_to_disc(model=new_model, path=self.__MODEL_LOCATION, file_name=self.__MODEL_FILE_NAME)
+
+        # index newly set model
+        # IMPORTANT: indexing should ALWAYS be done after the model has been saved to disc. If the model is indexed
+        # before saving, Top2Vec will fail to load it at the next restart
+        index_top2vec_model(model=self.model)
+
+    def load_model(self):
+        """
+        Method which loads an already present model from the disc.
+
+        """
+        logger.info("Loading existing model...")
+
+        # if no model can be loaded, set the model status to set up
+        if (model := load_model_from_disc(path=self.__MODEL_LOCATION, file_name=self.__MODEL_FILE_NAME)) is None:
+            self.model_status = ModelStatus.SETTING_UP
+            logger.info("No model could be found on the disc!")
+
+        # if we have a model, set it and set the status to ready
+        else:
+            self.model = model
+            self.model_status = ModelStatus.READY
+            logger.info("Model loaded from disc.")
 
     '''
     ######## Static methods #########

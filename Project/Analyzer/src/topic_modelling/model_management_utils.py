@@ -4,7 +4,7 @@ from top2vec import Top2Vec
 
 from src.db.database import session_scope
 from src.db.db_operations import get_trainable_pages
-from src.utils.general import create_folder
+from src.utils.general import create_folder, file_exists
 from src.utils.logger import get_logger
 
 # getting the logger
@@ -47,6 +47,19 @@ def train_model() -> Optional[Top2Vec]:
     return model
 
 
+def index_top2vec_model(model: Top2Vec):
+    """
+    Method which runs document indexing on a Top2Vec model.
+
+    :param model: Top2Vec model.
+
+    """
+    try:
+        model.index_document_vectors()
+    except Exception as e:
+        logger.error(f"Exception when indexing documents in the Top2Vec model: {e}")
+
+
 def run_query(top2vec_model: Top2Vec, query: str, number_of_pages: int) -> Optional[List[Dict]]:
     """
     Function which evaluates a query and returns an ordered list of dictionaries containing the relevant pages for
@@ -74,14 +87,17 @@ def save_model_to_disc(model: Top2Vec, path: str, file_name: str) -> bool:
 
     """
 
+    # create the folder we want to save the model to if it doesn't exist
     if not create_folder(relative_path=path):
         return False
 
+    # concat the full path to file
     if path[-1] != "/":
         full_path = path + "/" + file_name
     else:
         full_path = path + file_name
 
+    # save the model to file
     try:
         model.save(file=full_path)
     except Exception as e:
@@ -89,3 +105,35 @@ def save_model_to_disc(model: Top2Vec, path: str, file_name: str) -> bool:
         return False
 
     return True
+
+
+def load_model_from_disc(path: str, file_name: str) -> Optional[Top2Vec]:
+    """
+    Function which loads a saved Top2Vec model from disc.
+
+    :param path: Path to the directory the model is located in.
+    :param file_name: File name of the model.
+    :return: Top2Vec model if it exists on the specified path.
+
+    """
+
+    # concat full path to model
+    if path[-1] != "/":
+        full_path = path + "/" + file_name
+    else:
+        full_path = path + file_name
+
+    if not file_exists(path=full_path):
+        return None
+
+    # load the model from disc
+    try:
+        model = Top2Vec.load(full_path)
+    except Exception as e:
+        logger.error(f"Exception when loading existing model from path '{full_path}': {e}")
+        return None
+
+    # perform indexing
+    index_top2vec_model(model=model)
+
+    return model

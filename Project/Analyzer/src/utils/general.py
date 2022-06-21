@@ -133,3 +133,19 @@ def create_folder(relative_path: str):
 
     # return true if folder was created
     return True
+
+
+def file_exists(path: str) -> bool:
+    """
+    Function which checks if a file exists.
+
+    :param path: Path to the file.
+    :return: True if the file exists, otherwise False.
+
+    """
+
+    try:
+        return os.path.exists(path)
+    except Exception as e:
+        logger.warning(f"Exception when checking if file at path '{path}' exists: {e}")
+        return False
