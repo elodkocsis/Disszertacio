@@ -5,7 +5,8 @@ unique_ids:
     ResultPage.ItemTemplate1: '1654978073319698301696888.7122'
     SearchCard: '1654977314471994351284919.5946'
     UrlResultView: CJXHCOBGI24OCKCVIH2R5IGHEWBSDFET
-  modules: {}
+  modules:
+    Utils: '1655932488466631386473992.585'
   server_modules:
     ServerModule: JY73GVS3P6CSBSLFQE6QNI6J7PPTLFVI
   assets:
