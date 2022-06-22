@@ -14,10 +14,11 @@ from src.utils.logger import get_logger
 logger = get_logger()
 
 
-def train_model() -> Optional[Top2Vec]:
+def train_model(number_of_workers: int) -> Optional[Top2Vec]:
     """
     Function which trains a Top2Vec model.
 
+    :param number_of_workers: Number of threads to use for training the model.
     :return: Trained Top2Vec model.
 
     """
@@ -41,7 +42,7 @@ def train_model() -> Optional[Top2Vec]:
                         document_ids=list_of_ids,
                         keep_documents=False,  # we are not keeping the documents as we want to save on space
                         speed="learn",
-                        workers=12,  # my pc has 8 cores / 16 threads, so I can afford ramping this up a bit
+                        workers=number_of_workers,
                         verbose=True)
     except Exception as e:
         logger.error(f"Exception when training Top2Vec model: {e}")

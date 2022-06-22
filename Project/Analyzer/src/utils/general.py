@@ -171,3 +171,15 @@ def get_uplink_key() -> Optional[str]:
     """
 
     return get_environment_variable(variable="UPLINK_KEY", default_value=None)
+
+
+def get_trainer_thread_number(default_value=12) -> int:
+    """
+    Function which tries to read the number of trainer threads from an environment variable. The number should be
+    specified based on the capabilities of the processor running this application.
+
+    :param default_value: The number of threads to use for model training if the environment variable is not set.
+    :return: Number of threads to use for training the model.
+    """
+
+    return get_environment_variable(variable="TRAINER_THREADS", default_value=default_value)

@@ -9,6 +9,7 @@ from src.topic_modelling.Singleton import Singleton
 from src.topic_modelling.model_management_utils import train_model, save_model_to_disc, run_query, \
     index_top2vec_model, load_model_from_disc
 from src.utils.enums import ModelStatus
+from src.utils.general import get_trainer_thread_number
 from src.utils.logger import get_logger
 
 # getting the logger
@@ -29,6 +30,7 @@ class ModelManager(metaclass=Singleton):
         self.counter_lock = threading.Lock()
         self.client_counter = 0
         self.model_status = ModelStatus.SETTING_UP
+        self.trainer_threads = get_trainer_thread_number()
 
         # try loading an existing model
         self.load_model()
@@ -180,12 +182,12 @@ class ModelManager(metaclass=Singleton):
 
         """
         # we train the new model
-        logger.info("Training new model...")
+        logger.info(f"Training new model with {manager_instance.trainer_threads} threads...")
 
         # if the model has been trained successfully, we move on to switching it out with the existing one
         # otherwise we restart the timers
         # this is enough if there is already a model trained, but can cause issues if this is a "cold start"
-        if (new_model := train_model()) is not None:
+        if (new_model := train_model(number_of_workers=manager_instance.trainer_threads)) is not None:
             logger.info("New model trained.")
 
             with manager_instance.client_lock:
