@@ -10,9 +10,6 @@ from src.utils.logger import get_logger
 
 logger = get_logger()
 
-# call the model manager to kickstart the whole load process and create a single instance across the application
-ModelManager()
-
 # create an event
 should_stop_event = threading.Event()
 
@@ -49,6 +46,10 @@ def start_server(uplink_url: str, key: str):
     :param key: Webapp uplink key.
 
     """
+
+    # call the model manager to kickstart the whole load process and create a single instance across the application
+    # we are calling it here as we don't want it to run and create the instance at the import step called from main
+    ModelManager()
 
     anvil.server.connect(url=uplink_url, key=key)
 

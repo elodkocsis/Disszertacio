@@ -95,7 +95,7 @@ def get_environment_variable(variable: str, default_value: Any) -> Any:
     val = os.environ.get(variable, default_value)
 
     # check the situation where the variable is declared, but it has no value
-    if len(val) == 0:
+    if val == default_value or len(val) == 0:
         return default_value
 
     return val
@@ -149,3 +149,25 @@ def file_exists(path: str) -> bool:
     except Exception as e:
         logger.warning(f"Exception when checking if file at path '{path}' exists: {e}")
         return False
+
+
+def get_uplink_env_var() -> Optional[str]:
+    """
+    Function which tries to read the server uplink location from an environment variable.
+
+    :return: Uplink location if it is set as an environment variable.
+
+    """
+
+    return get_environment_variable(variable="UPLINK", default_value=None)
+
+
+def get_uplink_key() -> Optional[str]:
+    """
+    Function which tries to read the server uplink key from an environment variable.
+
+    :return: Uplink server key if it is set as an environment variable.
+
+    """
+
+    return get_environment_variable(variable="UPLINK_KEY", default_value=None)
