@@ -39,7 +39,7 @@ class ModelManager(metaclass=Singleton):
         self.start_model_training_thread(manager_instance=self)
 
     def __del__(self):
-        if self.model_training_thread is not None and self.model_training_thread.isAlive():
+        if self.model_training_thread is not None and self.model_training_thread.is_alive():
             # we want to wait for it to finish the training job and save the model to file before
             # killing the thread
             # this might not finish fast enough in docker, and it will probably get killed, losing all progress
@@ -59,7 +59,7 @@ class ModelManager(metaclass=Singleton):
 
         """
 
-        logger.info(f"Request for query: {query} and num of pages: {num_of_pages}")
+        logger.info(f"Request for query: '{query}' and num of pages: {num_of_pages}")
 
         # check the number of pages to not be less than 1
         if num_of_pages < 1:

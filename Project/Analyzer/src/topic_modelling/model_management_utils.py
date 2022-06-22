@@ -1,9 +1,7 @@
 from typing import Optional, List, Dict
 
-from sqlalchemy.orm import Session
 from top2vec import Top2Vec
 
-from src.db.PageDBModel import Page
 from src.db.database import session_scope
 from src.db.db_operations import get_trainable_pages, search_pages_by_urls, sort_pages_list_based_on_url_list, \
     map_list_of_pages_to_dict
