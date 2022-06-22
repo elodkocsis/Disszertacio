@@ -18,7 +18,7 @@ logger = get_logger()
 
 class ModelManager(metaclass=Singleton):
     __instance = None
-    __MODEL_TRAINING_TIMER_WAIT_TIME = 86400  # seconds -> this is 1 day, 24 hours
+    __DEFAULT_MODEL_TRAINING_TIMER_WAIT_TIME = 86400  # seconds -> this is 1 day, 24 hours
     __MODEL_LOCATION = "Top2VecModel"
     __MODEL_FILE_NAME = "model.t2v"
 
@@ -31,6 +31,7 @@ class ModelManager(metaclass=Singleton):
         self.client_counter = 0
         self.model_status = ModelStatus.SETTING_UP
         self.trainer_threads = get_trainer_thread_number()
+        self.model_training_wait_time = ModelManager.__DEFAULT_MODEL_TRAINING_TIMER_WAIT_TIME
 
         # try loading an existing model
         self.load_model()
@@ -167,7 +168,7 @@ class ModelManager(metaclass=Singleton):
         else:
             logger.info("Starting model training timer.")
             manager_instance.model_training_job_timer = threading.Timer(
-                manager_instance.__MODEL_TRAINING_TIMER_WAIT_TIME,
+                manager_instance.model_training_wait_time,
                 manager_instance.model_trainer_job,
                 args=(manager_instance,)
             )
@@ -225,16 +226,24 @@ class ModelManager(metaclass=Singleton):
 
             logger.info(f"Model status set to '{manager_instance.model_status}'")
 
+            # if the training was successful, we set the next training to take place after the default number of seconds
+            manager_instance.model_training_wait_time = ModelManager.__DEFAULT_MODEL_TRAINING_TIMER_WAIT_TIME
+
+        # if the training failed, set a reduced time for retrying
+        # hopefully by then, we will either have more pages to train on, or the database comes back online
+        else:
+            manager_instance.model_training_wait_time = 120  # 2 minutes
+
         # delete previous timer
         manager_instance.delete_model_training_timer()
 
         # we pretty much restart the whole threading cycle
-        manager_instance.model_training_job_timer = threading.Timer(manager_instance.__MODEL_TRAINING_TIMER_WAIT_TIME,
+        manager_instance.model_training_job_timer = threading.Timer(manager_instance.model_training_wait_time,
                                                                     manager_instance.model_trainer_job,
                                                                     args=(manager_instance,))
         manager_instance.model_training_job_timer.start()
 
-        logger.info(f"Timer set to run training job again after {manager_instance.__MODEL_TRAINING_TIMER_WAIT_TIME} "
+        logger.info(f"Timer set to run training job again after {manager_instance.model_training_wait_time} "
                     f"seconds.")
 
     def delete_model_training_timer(self):

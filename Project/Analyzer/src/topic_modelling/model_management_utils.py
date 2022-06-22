@@ -26,6 +26,13 @@ def train_model(number_of_workers: int) -> Optional[Top2Vec]:
         if(pages := get_trainable_pages(session=session)) is None:
             return None
 
+    num_of_pages = len(pages)
+
+    # if there are not at least 1000 pages to train the model on, return None
+    if num_of_pages < 1000:
+        logger.warning(f"Too few pages to train the model on! Current number of pages: {num_of_pages}")
+        return None
+
     list_of_ids = []
     list_of_documents = []
 
@@ -33,7 +40,7 @@ def train_model(number_of_workers: int) -> Optional[Top2Vec]:
         list_of_documents.append(page.page_content)
         list_of_ids.append(page.url)
 
-    print(f"Number of documents: {len(list_of_documents)}")
+    logger.info(f"Number of documents to index: {len(list_of_documents)}")
 
     try:
         model = Top2Vec(documents=list_of_documents,
