@@ -169,6 +169,10 @@ def format_urls(url_being_scraped: str, list_of_urls: List[str]) -> Optional[Lis
         if url[0] == "#":
             continue
 
+        # check for javascript:void(0);
+        if "javascript:void(0);" in url:
+            continue
+
         # remove section part
         parts = url.split("#")
         url = parts[0]
