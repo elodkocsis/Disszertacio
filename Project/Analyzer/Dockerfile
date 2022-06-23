@@ -1,0 +1,13 @@
+FROM python:3.9
+
+WORKDIR /app
+
+ADD . /app
+
+RUN apt-get update && apt-get -y upgrade
+
+RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
+
+ENV AM_I_IN_A_DOCKER_CONTAINER True
+
+ENTRYPOINT ["python3", "main.py"]

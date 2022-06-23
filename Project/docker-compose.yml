@@ -1,0 +1,170 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: unless-stopped
+    container_name: 'database'
+    user: postgres
+    environment:
+      - POSTGRES_DB=DarkWebScraper
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes: 
+      - postgres_data_volume:/var/lib/postgresql/data
+      - ./DB/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    networks:
+        - crawler
+        - engine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.10-management
+    restart: unless-stopped
+    container_name: 'rabbitmq'
+    ports:
+        - '5672:5672'
+        - '15672:15672'
+    volumes:
+        - ./MQ/data/:/var/lib/rabbitmq/
+        - ./MQ/log/:/var/log/rabbitmq
+    networks:
+        - crawler
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  scheduler:
+    build:
+      context: ./Scheduler
+      dockerfile: Dockerfile_scheduler
+    image: 'scheduler'
+    restart: always
+    container_name: 'scheduler'
+    environment:
+      - NUM_OF_URLS=8000
+    networks:
+        - crawler
+    depends_on:
+        rabbitmq:
+          condition: service_healthy
+        db:
+          condition: service_healthy
+          
+  processor:
+    build:
+      context: ./Scheduler
+      dockerfile: Dockerfile_processor
+    image: 'processor'
+    restart: unless-stopped
+    networks:
+        - crawler
+    depends_on:
+        rabbitmq:
+          condition: service_healthy
+        db:
+          condition: service_healthy
+    deploy:
+      mode: replicated                  # in order for this to work, use `--compatibility` flag when using docker-compose
+      replicas: 5
+
+  scraper:
+    build:
+      context: ./Scraper
+      dockerfile: Dockerfile
+    image: 'scraper'
+    restart: unless-stopped
+    networks:
+        - crawler
+    depends_on:
+        rabbitmq:
+          condition: service_healthy
+    deploy:
+      mode: replicated                  # in order for this to work, use `--compatibility` flag when using docker-compose
+      replicas: 20
+
+  tor:
+    image: goldy/tor-hidden-service:latest
+    restart: unless-stopped
+    container_name: 'hidden-service'
+    networks:
+      - hidden_services
+    environment:
+        WEBAPP_TOR_SERVICE_HOSTS: '80:webapp:80'
+        WEBAPP_TOR_SERVICE_VERSION: '3'
+        # uncomment and add your service key if you want a personalized .onion domain
+        # WEBAPP_TOR_SERVICE_KEY: |
+        #     <your service key for custom onion domain. if removed, a random one will be generated>
+
+        TOR_ENABLE_VANGUARDS: 'true'
+        VANGUARDS_EXTRA_OPTIONS: |
+          [Global]
+          enable_cbtverify = True
+
+  webapp:
+    build:
+      context: ./Webapp
+      dockerfile: Dockerfile
+    image: 'webapp'
+    restart: unless-stopped
+    container_name: 'webapp'
+    ports:  # TODO: remove port exposure when deployings
+      - '80:80'
+    environment:
+      - PORT=80
+      - KEY=server_HMNV5XCTSHFNQS3JRGJYC333-6ES3MVIULUSBJRZV
+    networks:
+        - hidden_services
+        - engine
+    depends_on:
+        tor:
+          condition: service_started
+
+  analyzer:
+    build:
+      context: ./Analyzer
+      dockerfile: Dockerfile
+    image: 'analyzer'
+    restart: unless-stopped
+    container_name: 'analyzer'
+    environment:
+      - UPLINK=ws://webapp:80/_/uplink
+      - UPLINK_KEY=server_HMNV5XCTSHFNQS3JRGJYC333-6ES3MVIULUSBJRZV
+      - TRAINER_THREADS=12
+    volumes:
+        - ./Analyzer/Top2VecModel/:/app/Top2VecModel
+    networks:
+        - engine
+    depends_on:
+        db:
+          condition: service_healthy
+        webapp:
+          condition: service_started
+
+
+
+networks:
+    crawler:
+      name: crawler-network
+      driver: bridge
+    engine:
+      name: engine-network
+      driver: bridge
+    hidden_services:
+      name: hidden_services
+      driver: bridge   
+
+volumes:
+  postgres_data_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: D:\PythonProjects\Disszertacio\Project\DB\data  # absolute path to the directory we want to mount

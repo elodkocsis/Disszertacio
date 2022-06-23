@@ -1,0 +1,8 @@
+venv/
+*.md
+.anvil-data
+.idea
+.git
+__pychache__/
+.gitignore
+Dockerfile
