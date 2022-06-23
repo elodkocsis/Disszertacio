@@ -99,8 +99,9 @@ services:
     environment:
         WEBAPP_TOR_SERVICE_HOSTS: '80:webapp:80'
         WEBAPP_TOR_SERVICE_VERSION: '3'
-        WEBAPP_TOR_SERVICE_KEY: |
-            <your service key for custom onion domain. if removed, a random one will be generated>
+        # uncomment and add your service key if you want a personalized .onion domain
+        # WEBAPP_TOR_SERVICE_KEY: |
+        #     <your service key for custom onion domain. if removed, a random one will be generated>
 
         TOR_ENABLE_VANGUARDS: 'true'
         VANGUARDS_EXTRA_OPTIONS: |
@@ -109,7 +110,7 @@ services:
 
   webapp:
     build:
-      context: .
+      context: ./Webapp
       dockerfile: Dockerfile
     image: 'webapp'
     restart: unless-stopped
@@ -124,7 +125,29 @@ services:
         - engine
     depends_on:
         tor:
+          condition: service_started
+
+  analyzer:
+    build:
+      context: ./Analyzer
+      dockerfile: Dockerfile
+    image: 'analyzer'
+    restart: unless-stopped
+    container_name: 'analyzer'
+    environment:
+      - UPLINK=ws://webapp:80/_/uplink
+      - UPLINK_KEY=server_HMNV5XCTSHFNQS3JRGJYC333-6ES3MVIULUSBJRZV
+      - TRAINER_THREADS=12
+    volumes:
+        - ./Analyzer/Top2VecModel/:/app/Top2VecModel
+    networks:
+        - engine
+    depends_on:
+        db:
           condition: service_healthy
+        webapp:
+          condition: service_started
+
 
 
 networks:
