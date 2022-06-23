@@ -135,3 +135,5 @@ dmypy.json
 Project/DB/data
 Project/MQ
 .anvil-data/
+*.t2v
+*.zip
