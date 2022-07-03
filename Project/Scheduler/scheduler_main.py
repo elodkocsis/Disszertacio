@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
         # get all the urls that need to be scraped on this run
         if(list_of_urls_to_scrape := get_page_urls_to_scrape(session=session,
-                                                             access_day_difference=1,
+                                                             access_day_difference=30,
                                                              number_of_urls=get_number_of_urls(8000))) is not None:
             # send each url on their way through the MQ
             for url in list_of_urls_to_scrape:
