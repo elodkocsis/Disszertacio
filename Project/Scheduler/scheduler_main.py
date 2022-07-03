@@ -10,9 +10,6 @@ from src.utils.general import read_config_file, get_config_file_location, get_nu
 
 if __name__ == '__main__':
 
-    # sleep if necessary
-    Sleeper()(hours=1)
-
     # get the parameters for connecting to the message queue
     if (mq_params := read_config_file(config_file=get_config_file_location(), section="MQ")) is None:
         sys.exit(3)
@@ -23,6 +20,9 @@ if __name__ == '__main__':
     # register signal handling method
     signal.signal(signal.SIGINT, get_signal_handler_method(mq=message_queue))
     signal.signal(signal.SIGTERM, get_signal_handler_method(mq=message_queue))
+
+    # sleep if necessary
+    Sleeper()(hours=1)
 
     # create a session
     with session_scope() as session:
