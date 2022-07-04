@@ -167,4 +167,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: D:\PythonProjects\Disszertacio\Project\DB\data  # absolute path to the directory we want to mount
+      device: D:\PythonProjects\DrkSrch\DB\data  # absolute path to the directory we want to mount
