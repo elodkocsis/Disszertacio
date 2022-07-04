@@ -133,7 +133,8 @@ dmypy.json
 
 # Custom directories for this project
 DB/data
-MQ
+MQ/data
+MQ/log
 .anvil-data/
 *.t2v
 *.zip
