@@ -56,6 +56,11 @@ class ResultPage(ResultPageTemplate):
                 show_notification(message="Couldn't retrieve results from the server!")
                 return
 
+            if result is None:
+                show_notification(message="Couldn't retrieve results from the server. Try again later!",
+                                  style="warning")
+                return
+
             if type(result) == str and result == "setting_up":
                 show_notification(message="Pages are currently being indexed. Try again later!",
                                   style="warning")

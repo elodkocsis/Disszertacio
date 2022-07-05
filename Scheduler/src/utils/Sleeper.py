@@ -1,11 +1,13 @@
+import time
 from datetime import datetime
 from typing import Optional
-from time import sleep
 
 from src.utils.logger import get_logger
+from src.utils.signal_handler import should_stop_event
 
 # get logger
 logger = get_logger()
+
 
 class Sleeper:
     """
@@ -32,17 +34,7 @@ class Sleeper:
 
             # if we have to sleep
             if hours != 0:
-
-                # convert hours to seconds
-                seconds = hours * 60 * 60
-
-                # calculate if the last time we slept was longer than we have to wait
-                diff = datetime.now() - last_datetime
-
-                time_to_still_wait_out = seconds - diff.seconds
-
-                if time_to_still_wait_out > 0:
-                    sleep(time_to_still_wait_out)
+                self._sleep(hours=hours, last_datetime=last_datetime)
 
         # save the current datetime to file
         self._save_current_datetime()
@@ -73,3 +65,32 @@ class Sleeper:
                 return datetime.strptime(file.read(), "%Y-%b-%d %H:%M:%S")
         except Exception:
             return None
+
+    @staticmethod
+    def _sleep(hours: int, last_datetime: datetime):
+        """
+        Method which will stall the program execution until the set amount of hours have passed from the last
+        time the application was sleeping.
+
+        :param hours: Number of hours to wait before resuming program execution.
+        :param last_datetime: The last time the program has been stalling.
+
+        """
+        # convert hours to seconds
+        seconds = hours * 60 * 60
+
+        while True:
+            # check for stop event
+            if should_stop_event.isSet():
+                break
+
+            # calculate if the last time we slept was longer than we have to wait
+            diff = datetime.now() - last_datetime
+
+            # get the second difference
+            time_to_still_wait_out = seconds - diff.seconds
+
+            if time_to_still_wait_out <= 0:
+                break
+
+            time.sleep(0.5)

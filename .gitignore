@@ -132,8 +132,9 @@ dmypy.json
 .pyre/
 
 # Custom directories for this project
-Project/DB/data
-Project/MQ
+DB/data
+MQ/data
+MQ/log
 .anvil-data/
 *.t2v
 *.zip

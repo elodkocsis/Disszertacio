@@ -141,11 +141,14 @@ def add_page(session: Session, new_page_data: Dict, is_new_url: bool) -> Optiona
 
     keys = Page.get_list_of_required_columns_for_update()
 
+    title = new_page_data[keys[1]]
+    content = new_page_data[keys[2]]
+
     # create new page object
     new_page = Page(url=new_page_data[keys[0]],
                     date_accessed=None if is_new_url else datetime.now(),  # new URLs were not accessed
-                    page_title=new_page_data[keys[1]],
-                    page_content=new_page_data[keys[2]],
+                    page_title=title.replace("\x00", "\uFFFD") if title is not None else None,
+                    page_content=content.replace("\x00", "\uFFFD") if content is not None else None,
                     meta_tags=new_page_data[keys[3]],
                     parent_url=new_page_data["parent_url"] if "parent_url" in new_page_data else None,
                     new_url=is_new_url,
