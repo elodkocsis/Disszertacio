@@ -115,7 +115,7 @@ services:
     image: 'webapp'
     restart: unless-stopped
     container_name: 'webapp'
-    ports:  # TODO: remove port exposure when deployings
+    ports:  # TODO: remove port exposure when deploying
       - '80:80'
     environment:
       - PORT=80
